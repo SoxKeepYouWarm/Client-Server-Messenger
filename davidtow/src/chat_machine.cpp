@@ -33,15 +33,18 @@ char* chat_machine::get_port() {
 }
     
 void chat_machine::print_ip() {
-    printf("IP:%s\n", IP);
+    //printf("IP:%s\n", IP);
+	cse4589_print_and_log("IP:%s\n", IP);
 }
 
 void chat_machine::print_port() {
-    printf("PORT:%s\n", PORT);
+    //printf("PORT:%s\n", PORT);
+	cse4589_print_and_log("PORT:%s\n", PORT);
 }
 
 void chat_machine::print_author() {
-    printf("I, David Towson, have read and understood the course academic integrity policy.\n");
+    //printf("I, David Towson, have read and understood the course academic integrity policy.\n");
+	cse4589_print_and_log("I, David Towson, have read and understood the course academic integrity policy.\n");
 }
 
 void chat_machine::print_list() {
