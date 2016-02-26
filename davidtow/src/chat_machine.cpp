@@ -3,7 +3,7 @@
 #include "chat_machine.h"
 #include "utility.h"
 
-char* MESSAGE = "This function cannot be performed on this machine\n";
+const char* MESSAGE = "This function cannot be performed on this machine\n";
 
 chat_machine::~chat_machine(){};
 
@@ -39,9 +39,9 @@ void chat_machine::print_ip() {
 }
 
 void chat_machine::print_port() {
-	cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
+	cse4589_print_and_log("[%s:SUCCESS]\n", "PORT");
 	cse4589_print_and_log("PORT:%s\n", PORT);
-	cse4589_print_and_log("[%s:END]\n", "AUTHOR");
+	cse4589_print_and_log("[%s:END]\n", "PORT");
 }
 
 void chat_machine::print_author() {
@@ -55,14 +55,14 @@ void chat_machine::print_list() {
 }
 
 
-char** chat_machine::tokenize_command(char* command) {
-	
-	char* COMMAND = "";
-	char* ARG_ONE = "";
-	char* ARG_TWO = "";
+void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
 	
 	std::string command_str(command);
 	std::cout << "command_str is: " << command_str << std::endl;
+	
+	printf("BEFORE: command is: %s\n", COMMAND);
+	printf("BEFORE: arg_one is: %s\n", ARG_ONE);
+	printf("BEFORE: arg_two is: %s\n", ARG_TWO);
 	
 	int start_index = 0;
 	for (int i = 0; i < command_str.length(); i++) {
@@ -72,24 +72,18 @@ char** chat_machine::tokenize_command(char* command) {
 			int offset_null = (command_str[i + 1] == '\0');
 			std::string word_str = command_str.substr(start_index, (i - start_index) + offset_null);
 			
-			char* word = new char[word_str.length() + 1];
-			strcpy(word, word_str.c_str());
+			std::cout << "word_str is: " << word_str << std::endl;
 			
-			printf("word is: %s\n", word);
-
 			if (COMMAND[0] == '\0') {
-				COMMAND = word;
+				strcpy(COMMAND, word_str.c_str());
 			} else if (ARG_ONE[0] == '\0') {
-				ARG_ONE = word;
+				strcpy(ARG_ONE, word_str.c_str());
 			} else if (ARG_TWO[0] == '\0') {
 				
 				std::string remaining_string = command_str.substr(start_index);
 				std::cout << "remaining string is: " << remaining_string << std::endl;
 				
-				char* rest_of_command = new char[command_str.length() - start_index];
-				strcpy(rest_of_command, remaining_string.c_str());
-				
-				ARG_TWO = rest_of_command;
+				strcpy(ARG_TWO, remaining_string.c_str());
 
 			} else {
 				break;
@@ -100,25 +94,26 @@ char** chat_machine::tokenize_command(char* command) {
 		}
 	}
 	
-	char** results = new char*[3];
-	results[0] = COMMAND;
-	results[1] = ARG_ONE;
-	results[2] = ARG_TWO;
-	
-	return results;
-	
 }
 
 
-void chat_machine::handle_input(char* command) {
+void chat_machine::handle_input(char* input) {
     
-	printf("initial command was: %s\n", command);
+	printf("initial command was: %s\n", input);
 	
-	char** tokens = tokenize_command(command);
+	char* COMMAND = new char[32];
+	char* ARG_ONE = new char[32];
+	char* ARG_TWO = new char[256];
 	
-	char* COMMAND = tokens[0];
-	char* ARG_ONE = tokens[1];
-	char* ARG_TWO = tokens[2];
+	memset(COMMAND, 0, 32);
+	memset(ARG_ONE, 0, 32);
+	memset(ARG_TWO, 0, 256);
+	
+	printf("BEFORE CALL: command is: %s\n", COMMAND);
+	printf("BEFORE CALL: arg_one is: %s\n", ARG_ONE);
+	printf("BEFORE CALL: arg_two is: %s\n", ARG_TWO);
+	
+	tokenize_command(input, COMMAND, ARG_ONE, ARG_TWO);
 	
 	printf("command is: %s\n", COMMAND);
 	printf("arg_one is: %s\n", ARG_ONE);
@@ -165,10 +160,14 @@ void chat_machine::handle_input(char* command) {
 		this->logout();
     } else if (str_equals(COMMAND, "EXIT")) {
         printf("COMMAND was EXIT\n");
-		//exit 0;
     } else {
 		cse4589_print_and_log("[%s:ERROR]\n", COMMAND);
         printf("did not recognize COMMAND\n");
     }
+	
+	delete [] COMMAND;
+	delete [] ARG_ONE;
+	delete [] ARG_TWO;
+	
 }
 // COMMON METHODS    

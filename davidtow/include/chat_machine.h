@@ -38,7 +38,10 @@ class chat_machine {
     virtual void print_author();
     virtual void print_list();
 	
-	virtual char** tokenize_command(char* command);
+	virtual void tokenize_command(char* input, 
+		char* COMMAND, 
+		char* ARG_ONE, 
+		char* ARG_TWO);
 	
 	void handle_input(char* command);
 	

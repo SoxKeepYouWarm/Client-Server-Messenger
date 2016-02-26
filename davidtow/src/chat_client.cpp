@@ -11,7 +11,7 @@ chat_client::chat_client(char* port) {
 }
 
 chat_client::~chat_client() {
-    delete [] IP;
+    //delete [] IP;
 }
 
 
@@ -168,6 +168,8 @@ void chat_client::login(char* server_ip, char* server_port) {
 
 void chat_client::send(char* client_ip, char* message) {
     
+	
+	
 	if (FD_ISSET(server_socket, &living_fds)) {
 		if (::send(server_socket, message, strlen(message), 0) == -1) {
 			printf("error sending message\n");
