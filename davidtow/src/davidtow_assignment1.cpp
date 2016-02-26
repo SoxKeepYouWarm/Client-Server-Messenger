@@ -73,8 +73,6 @@ int main(int argc, char **argv)
 
 	/* Clear LOGFILE*/
     fclose(fopen(LOGFILE, "w"));
-
-	/*Start Here*/
     
     printf("argc is %d\n", argc);
     for (int i = 0; i < argc; i++) {

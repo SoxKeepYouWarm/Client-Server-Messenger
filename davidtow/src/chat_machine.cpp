@@ -33,47 +33,92 @@ char* chat_machine::get_port() {
 }
     
 void chat_machine::print_ip() {
-    //printf("IP:%s\n", IP);
+    cse4589_print_and_log("[%s:SUCCESS]\n", "IP");
 	cse4589_print_and_log("IP:%s\n", IP);
+	cse4589_print_and_log("[%s:END]\n", "IP");
 }
 
 void chat_machine::print_port() {
-    //printf("PORT:%s\n", PORT);
+	cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
 	cse4589_print_and_log("PORT:%s\n", PORT);
+	cse4589_print_and_log("[%s:END]\n", "AUTHOR");
 }
 
 void chat_machine::print_author() {
-    //printf("I, David Towson, have read and understood the course academic integrity policy.\n");
+	cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
 	cse4589_print_and_log("I, David Towson, have read and understood the course academic integrity policy.\n");
+	cse4589_print_and_log("[%s:END]\n", "AUTHOR");
 }
 
 void chat_machine::print_list() {
-    printf("printing list in chat_machine.cpp\n");
+    printf("print list needs to be implemented.cpp\n");
 }
 
-void chat_machine::handle_input(char* command) {
-    
-	printf("initial command was: %s\n", command);
-	
-	char* tokens = strtok(command, " ");
+
+char** chat_machine::tokenize_command(char* command) {
 	
 	char* COMMAND = "";
 	char* ARG_ONE = "";
 	char* ARG_TWO = "";
 	
-	while (tokens != NULL)
-  	{
-		if (COMMAND[0] == '\0') {
-			COMMAND = tokens;
-		} else if (ARG_ONE[0] == '\0') {
-			ARG_ONE = tokens;
-		} else if (ARG_TWO[0] == '\0') {
-			ARG_TWO = tokens;
-		} else {
-			printf("error parsing command\n");
+	std::string command_str(command);
+	std::cout << "command_str is: " << command_str << std::endl;
+	
+	int start_index = 0;
+	for (int i = 0; i < command_str.length(); i++) {
+		
+		if (command_str[i] == ' ' || command_str[i + 1] == '\0') {
+			
+			int offset_null = (command_str[i + 1] == '\0');
+			std::string word_str = command_str.substr(start_index, (i - start_index) + offset_null);
+			
+			char* word = new char[word_str.length() + 1];
+			strcpy(word, word_str.c_str());
+			
+			printf("word is: %s\n", word);
+
+			if (COMMAND[0] == '\0') {
+				COMMAND = word;
+			} else if (ARG_ONE[0] == '\0') {
+				ARG_ONE = word;
+			} else if (ARG_TWO[0] == '\0') {
+				
+				std::string remaining_string = command_str.substr(start_index);
+				std::cout << "remaining string is: " << remaining_string << std::endl;
+				
+				char* rest_of_command = new char[command_str.length() - start_index];
+				strcpy(rest_of_command, remaining_string.c_str());
+				
+				ARG_TWO = rest_of_command;
+
+			} else {
+				break;
+			}
+			
+			while(command_str[++i] == ' ' );
+			start_index = i;
 		}
-    	tokens = strtok (NULL, " ");
-  	}
+	}
+	
+	char** results = new char*[3];
+	results[0] = COMMAND;
+	results[1] = ARG_ONE;
+	results[2] = ARG_TWO;
+	
+	return results;
+	
+}
+
+
+void chat_machine::handle_input(char* command) {
+    
+	printf("initial command was: %s\n", command);
+	
+	char** tokens = tokenize_command(command);
+	
+	char* COMMAND = tokens[0];
+	char* ARG_ONE = tokens[1];
+	char* ARG_TWO = tokens[2];
 	
 	printf("command is: %s\n", COMMAND);
 	printf("arg_one is: %s\n", ARG_ONE);
@@ -122,6 +167,7 @@ void chat_machine::handle_input(char* command) {
         printf("COMMAND was EXIT\n");
 		//exit 0;
     } else {
+		cse4589_print_and_log("[%s:ERROR]\n", COMMAND);
         printf("did not recognize COMMAND\n");
     }
 }

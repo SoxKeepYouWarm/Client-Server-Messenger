@@ -3,11 +3,48 @@
 
 chat_client::chat_client(char* port) {
     PORT = port;
+	
+	IP = new char[32];
+	find_my_ip(IP, 32);
+	
 	printf("chat client was just initialized\n");
 }
 
 chat_client::~chat_client() {
-    
+    delete [] IP;
+}
+
+
+void chat_client::find_my_ip(char* buffer, size_t buflen) {
+	
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    const char* kGoogleDnsIp = "8.8.8.8";
+    uint16_t kDnsPort = 53;
+    struct sockaddr_in serv;
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family = AF_INET;
+    serv.sin_addr.s_addr = inet_addr(kGoogleDnsIp);
+    serv.sin_port = htons(kDnsPort);
+
+    int err = connect(sock, (const sockaddr*) &serv, sizeof(serv));
+	if (err == -1) {
+		printf("there was an error with connect\n");
+	}
+
+    sockaddr_in name;
+    socklen_t namelen = sizeof(name);
+    err = getsockname(sock, (sockaddr*) &name, &namelen);
+    if (err == -1) {
+		printf("there was an error with getsockname\n");
+	}
+
+    const char* ip = inet_ntop(AF_INET, &name.sin_addr, buffer, buflen);
+	printf("ip is: %s\n", ip);
+
+    close(sock);
+	
+	strcpy(buffer, ip);		
 }
 
 
@@ -31,6 +68,7 @@ void chat_client::set_server_addr(char* server_ip, char* server_port) {
    server_addr.sin_port = htons(atoi(server_port));
    
    printf("server_addr was just set\n");
+   
 }
 
 

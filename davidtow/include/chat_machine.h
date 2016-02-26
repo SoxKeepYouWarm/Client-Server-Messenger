@@ -11,6 +11,8 @@
 #include "../include/global.h"
 #include "../include/logger.h"
 
+#include <iostream>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +37,8 @@ class chat_machine {
     virtual void print_port();
     virtual void print_author();
     virtual void print_list();
+	
+	virtual char** tokenize_command(char* command);
 	
 	void handle_input(char* command);
 	
