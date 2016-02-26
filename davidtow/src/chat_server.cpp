@@ -124,11 +124,30 @@ void chat_server::client_handler(int i) {
 		} else {
 			perror("recv");
 		}
-		close(i); // bye!
-		FD_CLR(i, &master); // remove from master set
+		close(i);
+		FD_CLR(i, &master); 
 	} else {
-		// we got some data from a client
-		printf("message received was: %s\n", buf);
+		printf("Received %d bytes\n", nbytes);
+		printf("Message received was: %s\n", buf);
+		
+		char* message = (char*) buf;
+		
+		std::string input(message);
+		std::string my_target = "";
+		std::string my_message = "";
+		for (int i = 0; message[i] != 0; i++) {
+			
+			if (message[i] == -1) {
+				my_target = input.substr(0, i);
+				my_message = input.substr(i + 1, strlen(message) - 1);
+			}
+			
+		}
+		
+		std::cout << my_target << std::endl;
+		std::cout << my_message << std::endl;
+		
+		
         for(int j = 0; j <= fdmax; j++) {
 			// send to everyone!
 			if (FD_ISSET(j, &master)) {

@@ -143,14 +143,6 @@ void chat_machine::handle_input(char* input) {
 	char* ARG_ONE = new char[32]();
 	char* ARG_TWO = new char[256]();
 	
-	//memset(COMMAND, 0, 32);
-	//memset(ARG_ONE, 0, 32);
-	//memset(ARG_TWO, 0, 256);
-	
-	//printf("BEFORE CALL: command is: %s\n", COMMAND);
-	//printf("BEFORE CALL: arg_one is: %s\n", ARG_ONE);
-	//printf("BEFORE CALL: arg_two is: %s\n", ARG_TWO);
-	
 	tokenize_command(input, COMMAND, ARG_ONE, ARG_TWO);
 	
 	printf("command is: %s\n", COMMAND);
