@@ -42,6 +42,7 @@ class chat_client: public chat_machine {
     
     void refresh();
     void logout();
+	void exit_program();
     
 };
 

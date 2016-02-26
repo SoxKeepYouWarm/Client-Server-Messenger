@@ -33,7 +33,7 @@ void chat_client::set_server_addr(char* server_ip, char* server_port) {
    server_addr.sin_addr.s_addr = inet_addr(server_ip);
    server_addr.sin_port = htons(atoi(server_port));
    
-   printf("server_addr was just set\n");
+   printf("server_addr was just set to ip: %s and port: %s\n", server_ip, server_port);
    
 }
 
@@ -42,13 +42,12 @@ void chat_client::connect_to_server() {
 	
    if (connect(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
       printf("Cannot connect to server\n");
-      //exit(1);
    } else {
-	   printf("client connected OK\n");
+	   	printf("client connected OK\n");
+	   	FD_SET(server_socket, &living_fds);
+   		FD_MAX = server_socket;
+		LOGGED_IN = 1;
    }
-   
-   FD_SET(server_socket, &living_fds);
-   FD_MAX = server_socket;
    
 }
 
@@ -77,8 +76,8 @@ void chat_client::server_handler() {
 		} else {
 			perror("recv");
 		}
-		close(server_socket); // bye!
-		FD_CLR(server_socket, &living_fds); // remove from master set
+		close(server_socket); 
+		FD_CLR(server_socket, &living_fds); 
 	} else {
 		// we got some data from the server
 		printf("message received was: %s\n", input);
@@ -123,6 +122,8 @@ void chat_client::main() {
 		
 	}
 	
+	printf("outside while loop, this must be an error\n");
+	
 }
 
 
@@ -132,12 +133,10 @@ void chat_client::login(char* server_ip, char* server_port) {
 	this->connect_to_server();
 }
 
-void chat_client::send(char* client_ip, char* message) {
+void chat_client::send(char* client_ip, char* msg) {
     
-	
-	
 	if (FD_ISSET(server_socket, &living_fds)) {
-		if (::send(server_socket, message, strlen(message), 0) == -1) {
+		if (::send(server_socket, msg, strlen(msg), 0) == -1) {
 			printf("error sending message\n");
 		} else {
 			printf("message sent successfully\n");
@@ -162,5 +161,18 @@ void chat_client::refresh() {
 }
 
 void chat_client::logout() {
-    
+    if (LOGGED_IN) {
+		close(server_socket); 
+		FD_CLR(server_socket, &living_fds); 
+		printf("user logged out\n");
+		LOGGED_IN = 0;
+	} else {
+		printf("user is not currently logged in\n");
+	}
+}
+
+void chat_client::exit_program() {
+	printf("exit program was called\n");
+	this->logout();
+	exit(0);
 }

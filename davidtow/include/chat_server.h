@@ -39,6 +39,8 @@ class chat_server: public chat_machine {
 
     void print_statistics();
     void print_blocked(char* client_ip);
+	
+	void exit_program();
     
 };
 

@@ -188,6 +188,9 @@ void chat_server::main() {
             } 
         }
     }
+	
+	printf("outside while loop, this must be an error\n");
+	
 }
 
 
@@ -197,4 +200,9 @@ void chat_server::print_statistics() {
 
 void chat_server::print_blocked(char* client_ip) {
     
+}
+
+void chat_server::exit_program() {
+	printf("exit program was called\n");
+	exit(0);
 }

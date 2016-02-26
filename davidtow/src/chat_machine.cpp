@@ -54,6 +54,8 @@ void chat_machine::print_list() {
     printf("print list needs to be implemented.cpp\n");
 }
 
+void chat_machine::exit_program() { printf(MESSAGE); }
+
 
 void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
 	
@@ -99,6 +101,8 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 
 void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 	
+	printf("find my ip was called\n");
+	
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     const char* kGoogleDnsIp = "8.8.8.8";
@@ -122,7 +126,8 @@ void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 	}
 
     const char* ip = inet_ntop(AF_INET, &name.sin_addr, buffer, buflen);
-	printf("ip is: %s\n", ip);
+	
+	printf("ip is: \"%s\"\n", ip);
 
     close(sock);
 	
@@ -134,13 +139,13 @@ void chat_machine::handle_input(char* input) {
     
 	printf("initial command was: %s\n", input);
 	
-	char* COMMAND = new char[32];
-	char* ARG_ONE = new char[32];
-	char* ARG_TWO = new char[256];
+	char* COMMAND = new char[32]();
+	char* ARG_ONE = new char[32]();
+	char* ARG_TWO = new char[256]();
 	
-	memset(COMMAND, 0, 32);
-	memset(ARG_ONE, 0, 32);
-	memset(ARG_TWO, 0, 256);
+	//memset(COMMAND, 0, 32);
+	//memset(ARG_ONE, 0, 32);
+	//memset(ARG_TWO, 0, 256);
 	
 	//printf("BEFORE CALL: command is: %s\n", COMMAND);
 	//printf("BEFORE CALL: arg_one is: %s\n", ARG_ONE);
