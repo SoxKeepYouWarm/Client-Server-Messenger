@@ -20,8 +20,6 @@ class chat_client: public chat_machine {
 	
 	char input[BUFFERSIZE];
 	int nbytes;
-    
-	void find_my_ip(char* buffer, size_t buflen);
 	
 	void create_server_socket();
 	void set_server_addr(char* server_ip, char* server_port);

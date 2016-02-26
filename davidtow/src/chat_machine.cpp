@@ -60,9 +60,9 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 	std::string command_str(command);
 	std::cout << "command_str is: " << command_str << std::endl;
 	
-	printf("BEFORE: command is: %s\n", COMMAND);
-	printf("BEFORE: arg_one is: %s\n", ARG_ONE);
-	printf("BEFORE: arg_two is: %s\n", ARG_TWO);
+	//printf("BEFORE: command is: %s\n", COMMAND);
+	//printf("BEFORE: arg_one is: %s\n", ARG_ONE);
+	//printf("BEFORE: arg_two is: %s\n", ARG_TWO);
 	
 	int start_index = 0;
 	for (int i = 0; i < command_str.length(); i++) {
@@ -97,6 +97,39 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 }
 
 
+void chat_machine::find_my_ip(char* buffer, size_t buflen) {
+	
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    const char* kGoogleDnsIp = "8.8.8.8";
+    uint16_t kDnsPort = 53;
+    struct sockaddr_in serv;
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family = AF_INET;
+    serv.sin_addr.s_addr = inet_addr(kGoogleDnsIp);
+    serv.sin_port = htons(kDnsPort);
+
+    int err = connect(sock, (const sockaddr*) &serv, sizeof(serv));
+	if (err == -1) {
+		printf("there was an error with connect\n");
+	}
+
+    sockaddr_in name;
+    socklen_t namelen = sizeof(name);
+    err = getsockname(sock, (sockaddr*) &name, &namelen);
+    if (err == -1) {
+		printf("there was an error with getsockname\n");
+	}
+
+    const char* ip = inet_ntop(AF_INET, &name.sin_addr, buffer, buflen);
+	printf("ip is: %s\n", ip);
+
+    close(sock);
+	
+	strcpy(buffer, ip);		
+}
+
+
 void chat_machine::handle_input(char* input) {
     
 	printf("initial command was: %s\n", input);
@@ -109,9 +142,9 @@ void chat_machine::handle_input(char* input) {
 	memset(ARG_ONE, 0, 32);
 	memset(ARG_TWO, 0, 256);
 	
-	printf("BEFORE CALL: command is: %s\n", COMMAND);
-	printf("BEFORE CALL: arg_one is: %s\n", ARG_ONE);
-	printf("BEFORE CALL: arg_two is: %s\n", ARG_TWO);
+	//printf("BEFORE CALL: command is: %s\n", COMMAND);
+	//printf("BEFORE CALL: arg_one is: %s\n", ARG_ONE);
+	//printf("BEFORE CALL: arg_two is: %s\n", ARG_TWO);
 	
 	tokenize_command(input, COMMAND, ARG_ONE, ARG_TWO);
 	

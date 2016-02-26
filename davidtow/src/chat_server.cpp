@@ -2,6 +2,8 @@
 
 chat_server::chat_server(char* port) {
     PORT = port;
+	IP = new char[32];
+	find_my_ip(IP, 32);
 }
 
 chat_server::~chat_server() {

@@ -43,6 +43,8 @@ class chat_machine {
 		char* ARG_ONE, 
 		char* ARG_TWO);
 	
+	virtual void find_my_ip(char* buffer, size_t buflen);
+	
 	void handle_input(char* command);
 	
 	virtual void main() = 0;
