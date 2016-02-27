@@ -102,6 +102,14 @@ unsigned short get_in_port(struct sockaddr *sa)
 }
 
 
+std::string toString(int val)
+{
+    std::stringstream stream;
+    stream << val;
+    return stream.str();
+}
+
+
 void chat_server::listener_handler() {
 	
     addrlen = sizeof remoteaddr;
@@ -114,25 +122,27 @@ void chat_server::listener_handler() {
         if (newfd > fdmax) {    // keep track of the max
 			fdmax = newfd;
 		}
-		printf("selectserver: new connection from %s on "
-			"socket %d\n",
-			inet_ntop(remoteaddr.ss_family,
-			::get_in_addr((struct sockaddr*)&remoteaddr),
-			remoteIP, INET6_ADDRSTRLEN),
-			newfd);
-			
-		printf("port is %d\n",
-			ntohs(get_in_port((struct sockaddr*)&remoteaddr)));
-			
-		char host[128];
+		
+		int associated_socket = newfd;
+		char client_ip[32] = "";
+		char client_port[32]; 
+		char hostname[32];
 		char service[32];
+		
+		strcpy(client_ip, inet_ntop(remoteaddr.ss_family,
+			::get_in_addr((struct sockaddr*)&remoteaddr),
+			remoteIP, INET6_ADDRSTRLEN));
+			
+		int temp_int = ntohs(get_in_port((struct sockaddr*)&remoteaddr));
+		std::string temp = toString(temp_int);
+		strcpy(client_port, temp.c_str());
 			
 		getnameinfo((struct sockaddr*)&remoteaddr, 
 			sizeof remoteaddr, 
-			host, sizeof host, service, sizeof service, 0);
+			hostname, sizeof hostname, service, sizeof service, 0);
 			
-		printf("host is \"%s\" and service is \"%s\"\n", host, service);
-		
+		handle_login(associated_socket, client_ip, client_port, hostname);
+			
 			
 	}
 					
@@ -146,6 +156,7 @@ void chat_server::client_handler(int i) {
 		if (nbytes == 0) {
 			// connection closed
 			printf("selectserver: socket %d hung up\n", i);
+			handle_logout(i);
 		} else {
 			perror("recv");
 		}
@@ -192,6 +203,54 @@ void chat_server::proccess_request(int sender_socket, char* request) {
     } else if (str_equals(COMMAND, "BROADCAST")) {
 		this->handle_broadcast(sender_socket, ARG_TWO);
 	}
+	
+}
+
+
+void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
+	
+	user* this_user = NULL;
+	for (int i = 0; i < user_list.size(); i++) {
+		if (str_equals(user_list.at(i).ip, ip)) {
+			this_user = &user_list.at(i);
+		}
+	}
+	
+	printf("user list size is %d\n", user_list.size());
+	
+	if (this_user == NULL) {
+		// this is a new user
+		printf("This is a new user\n");
+		
+		struct user new_user;
+		strcpy(new_user.ip, ip);
+		strcpy(new_user.hostname, host);
+		strcpy(new_user.remote_port, port);
+		new_user.associated_socket = socket;
+		
+		user_list.push_back(new_user);
+		
+		printf("new user list size is %d\n", user_list.size());
+		
+	} else {
+		//this is a returning user
+		printf("This is a returning user\n");
+		printf("returning user ip is %s\n", this_user->ip);
+		printf("returning user port is %s\n", this_user->remote_port);
+		printf("returning user host is \"%s\"\n", this_user->hostname);
+		
+		// check if user has any pending messages
+		if ( ! this_user->saved_messages.empty()) {
+			// user has unreceived messages
+			
+		} 
+		
+	}
+	
+	printf("selectserver: new connection from %s on "
+			"socket %d\n", ip, socket);
+	printf("port is %s\n", port);
+	printf("host is \"%s\"\n", host);
 	
 }
 

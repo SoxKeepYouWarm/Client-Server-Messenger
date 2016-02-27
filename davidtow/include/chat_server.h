@@ -3,12 +3,25 @@
 
 #include "chat_machine.h"
 
+#include <queue>
+#include <vector>
+
 class chat_server: public chat_machine {
     
-	struct user {
-		char* ip;
-		char* host_name;
+	struct message {
+		char sender[32];
+		char msg[256];
 	};
+	
+	struct user {
+		char ip[32];
+		char hostname[32];
+		char remote_port[32];
+		int associated_socket;
+		std::queue<message> saved_messages;
+	};
+	
+	std::vector<user> user_list;
 	
 	char input[BUFFERSIZE];
 	
@@ -38,6 +51,7 @@ class chat_server: public chat_machine {
 	void client_handler(int i);
 	
 	void proccess_request(int sender_socket, char* request);
+	void handle_login(int socket, char* ip, char* port, char* host);
 	void handle_send(char* target, char* message);
 	void handle_broadcast(int sender_socket, char* message);
 	

@@ -1,4 +1,5 @@
 #include "chat_machine.h"
+#include <string.h>
 
 const char* MESSAGE = "This function cannot be performed on this machine\n";
 
