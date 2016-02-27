@@ -8,6 +8,7 @@ class chat_client: public chat_machine {
     int LOGGED_IN;
 	
 	int server_socket;
+	struct sockaddr_in local_addr;
 	struct sockaddr_in server_addr;
 	
 	int IP_SOCKET;
@@ -22,6 +23,7 @@ class chat_client: public chat_machine {
 	int nbytes;
 	
 	void create_server_socket();
+	void bind_socket_port();
 	void set_server_addr(char* server_ip, char* server_port);
 	void connect_to_server();
 	

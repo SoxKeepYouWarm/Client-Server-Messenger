@@ -5,6 +5,11 @@
 
 class chat_server: public chat_machine {
     
+	struct user {
+		char* ip;
+		char* host_name;
+	};
+	
 	char input[BUFFERSIZE];
 	
 	int listener;     // listening socket descriptor
@@ -16,6 +21,7 @@ class chat_server: public chat_machine {
     int nbytes;
 	
 	char remoteIP[INET6_ADDRSTRLEN];
+	int remote_port;
 	
 	fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()

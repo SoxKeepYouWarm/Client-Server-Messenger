@@ -5,6 +5,7 @@ chat_server::chat_server(char* port) {
     PORT = port;
 	IP = new char[32];
 	find_my_ip(IP, 32);
+	memset(&input, 0, sizeof input);
 }
 
 chat_server::~chat_server() {
@@ -90,11 +91,21 @@ void *get_in_addr(struct sockaddr *sa) {
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+//in_port_t
+unsigned short get_in_port(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return (((struct sockaddr_in*)sa)->sin_port);
+    }
+
+    return (((struct sockaddr_in6*)sa)->sin6_port);
+}
+
 
 void chat_server::listener_handler() {
 	
     addrlen = sizeof remoteaddr;
-	newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen);
+	newfd = accept(listener, (struct sockaddr*)&remoteaddr, &addrlen);
 	if (newfd == -1) {
     	perror("accept");
     } else {
@@ -109,6 +120,19 @@ void chat_server::listener_handler() {
 			::get_in_addr((struct sockaddr*)&remoteaddr),
 			remoteIP, INET6_ADDRSTRLEN),
 			newfd);
+			
+		printf("port is %d\n",
+			ntohs(get_in_port((struct sockaddr*)&remoteaddr)));
+			
+		char host[128];
+		char service[32];
+			
+		getnameinfo((struct sockaddr*)&remoteaddr, 
+			sizeof remoteaddr, 
+			host, sizeof host, service, sizeof service, 0);
+			
+		printf("host is \"%s\" and service is \"%s\"\n", host, service);
+		
 			
 	}
 					

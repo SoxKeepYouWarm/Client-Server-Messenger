@@ -6,11 +6,12 @@ chat_client::chat_client(char* port) {
 	IP = new char[32];
 	find_my_ip(IP, 32);
 	
+	memset(&input, 0, sizeof input);
 	printf("chat client was just initialized\n");
 }
 
 chat_client::~chat_client() {
-    //delete [] IP;
+
 }
 
 
@@ -21,7 +22,28 @@ void chat_client::create_server_socket() {
       exit(1);
 	}
 	
+	int yes=1;        
+	setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+	
 	printf("just created server socket\n");
+	
+}
+
+
+void chat_client::bind_socket_port() {
+	
+	memset(&local_addr, 0, sizeof(local_addr));
+	local_addr.sin_family = AF_INET;
+	local_addr.sin_port = htons(atoi(PORT));
+
+	if (bind(server_socket, 
+			(struct sockaddr *) &local_addr, 
+			sizeof(local_addr)) < 0) {
+    	
+		perror("bind");
+    	exit(1);
+	}
+	
 }
 
 
@@ -75,6 +97,7 @@ void chat_client::server_handler() {
 		if (nbytes == 0) {
 			// connection closed
 			printf("selectserver: socket %d hung up\n", server_socket);
+			LOGGED_IN = 0;
 		} else {
 			perror("recv");
 		}
@@ -94,6 +117,7 @@ void chat_client::main() {
 	printf("running main in chat client\n");
 	
     create_server_socket();
+	bind_socket_port();
 	
 	// clear read file descriptors
 	FD_ZERO(&living_fds);
