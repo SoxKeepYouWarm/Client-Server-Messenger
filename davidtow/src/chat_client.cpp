@@ -21,6 +21,7 @@ void chat_client::create_server_socket() {
       exit(1);
 	}
 	
+	printf("just created server socket\n");
 }
 
 
@@ -33,21 +34,22 @@ void chat_client::set_server_addr(char* server_ip, char* server_port) {
    server_addr.sin_addr.s_addr = inet_addr(server_ip);
    server_addr.sin_port = htons(atoi(server_port));
    
-   printf("server_addr was just set to ip: %s and port: %s\n", server_ip, server_port);
+   printf("server_addr was just set to ip: \"%s\" and port: \"%s\"\n", server_ip, server_port);
    
 }
 
 
 void chat_client::connect_to_server() {
 	
-   if (connect(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
-      printf("Cannot connect to server\n");
-   } else {
-	   	printf("client connected OK\n");
-	   	FD_SET(server_socket, &living_fds);
+   	if (connect(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
+		printf("Cannot connect to server\n");
+   		perror("connect");
+   	} else {
+		printf("client connected OK\n");
+		FD_SET(server_socket, &living_fds);
    		FD_MAX = server_socket;
 		LOGGED_IN = 1;
-   }
+	}
    
 }
 

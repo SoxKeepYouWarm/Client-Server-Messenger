@@ -1,6 +1,7 @@
 #include "chat_server.h"
 
 chat_server::chat_server(char* port) {
+	memset(&buf, 0, sizeof buf);
     PORT = port;
 	IP = new char[32];
 	find_my_ip(IP, 32);
@@ -209,15 +210,15 @@ void chat_server::main() {
         for(int i = 0; i <= fdmax; i++) {
             if (FD_ISSET(i, &read_fds)) { 
                 if (i == STDIN) {
-					
+					printf("hit stdin handler\n");
 					stdin_handler();
 			
 				} else if (i == listener) {
-                    
+                    printf("hit listener handler\n");
 					listener_handler();
                 
 				} else {
-                    
+                    printf("hit client handler\n");
 					client_handler(i);
 					
                 }

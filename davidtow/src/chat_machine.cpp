@@ -57,6 +57,10 @@ void chat_machine::exit_program() { printf(MESSAGE); }
 void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
 	
 	std::string command_str(command);
+	if (!command_str.empty() && command_str[command_str.length()-1] == '\n') {
+    	command_str.erase(command_str.length()-1);
+	}
+		
 	std::cout << "command_str is: " << command_str << std::endl;
 	
 	int start_index = 0;
@@ -95,6 +99,10 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 void chat_machine::tokenize_request(char* request, char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
 	
 	std::string input(request);
+	if (!input.empty() && input[input.length()-1] == '\n') {
+    	input.erase(input.length()-1);
+	}
+		
 	int start = 0;
 	for (int i = 0; input[i] != 0; i++) {
 		
@@ -149,7 +157,7 @@ void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 
     const char* ip = inet_ntop(AF_INET, &name.sin_addr, buffer, buflen);
 	
-	printf("ip is: \"%s\"\n", ip);
+	printf("my ip is: \"%s\"\n", ip);
 
     close(sock);
 	
