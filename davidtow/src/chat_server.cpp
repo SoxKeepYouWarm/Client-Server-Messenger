@@ -130,22 +130,9 @@ void chat_server::client_handler(int i) {
 		printf("Received %d bytes\n", nbytes);
 		printf("Message received was: %s\n", buf);
 		
-		char* message = (char*) buf;
+		char* request = (char*) buf;
+		proccess_request(i, request);
 		
-		std::string input(message);
-		std::string my_target = "";
-		std::string my_message = "";
-		for (int i = 0; message[i] != 0; i++) {
-			
-			if (message[i] == -1) {
-				my_target = input.substr(0, i);
-				my_message = input.substr(i + 1, strlen(message) - 1);
-			}
-			
-		}
-		
-		std::cout << my_target << std::endl;
-		std::cout << my_message << std::endl;
 		
 		
         for(int j = 0; j <= fdmax; j++) {
@@ -153,14 +140,44 @@ void chat_server::client_handler(int i) {
 			if (FD_ISSET(j, &master)) {
 				// except the listener and ourselves
 				if (j != listener) {
-					if (::send(j, buf, nbytes, 0) == -1) {
+					if (int out_bytes = ::send(j, buf, nbytes, 0) == -1) {
 						perror("send");
+					} else {
+						printf("message sent %d bytes successfully\n", nbytes);
 					}
 				}
 			}
 		}
 		memset(&buf, 0, sizeof buf);
 	}				
+}
+
+
+void chat_server::proccess_request(int sender_socket, char* request) {
+	
+	char* COMMAND = new char[32]();
+	char* ARG_ONE = new char[32]();
+	char* ARG_TWO = new char[256]();
+	
+	tokenize_request(request, COMMAND, ARG_ONE, ARG_TWO);
+	
+	if (str_equals(COMMAND, "SEND")) {
+        printf("COMMAND was AUTHOR\n");
+        this->handle_send(ARG_ONE, ARG_TWO);
+    } else if (str_equals(COMMAND, "BROADCAST")) {
+		this->handle_broadcast(sender_socket, ARG_TWO);
+	}
+	
+}
+
+
+void chat_server::handle_send(char* target, char* message) {
+	printf("in handle_send target: %s and message: %s", target, message);
+}
+
+
+void chat_server::handle_broadcast(int sender_socket, char* message) {
+	printf("in handle_broadcast sender: %d and message: %s", sender_socket, message);
 }
 
 
@@ -180,17 +197,17 @@ void chat_server::main() {
     FD_SET(listener, &master);
     fdmax = listener; 
 
-    // main loop
     while (1) {
-        read_fds = master; // copy it
-        if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
+		
+        read_fds = master; 
+        
+		if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("select");
             exit(4);
         }
 
-        // run through the existing connections looking for data to read
         for(int i = 0; i <= fdmax; i++) {
-            if (FD_ISSET(i, &read_fds)) { // we got one!!
+            if (FD_ISSET(i, &read_fds)) { 
                 if (i == STDIN) {
 					
 					stdin_handler();

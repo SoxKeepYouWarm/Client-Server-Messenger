@@ -31,6 +31,10 @@ class chat_server: public chat_machine {
 	void listener_handler();
 	void client_handler(int i);
 	
+	void proccess_request(int sender_socket, char* request);
+	void handle_send(char* target, char* message);
+	void handle_broadcast(int sender_socket, char* message);
+	
     public:
     chat_server(char* port);
     ~chat_server();

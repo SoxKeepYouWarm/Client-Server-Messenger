@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <string.h>
 #include "chat_machine.h"
-#include "utility.h"
 
 const char* MESSAGE = "This function cannot be performed on this machine\n";
 
@@ -62,10 +59,6 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 	std::string command_str(command);
 	std::cout << "command_str is: " << command_str << std::endl;
 	
-	//printf("BEFORE: command is: %s\n", COMMAND);
-	//printf("BEFORE: arg_one is: %s\n", ARG_ONE);
-	//printf("BEFORE: arg_two is: %s\n", ARG_TWO);
-	
 	int start_index = 0;
 	for (int i = 0; i < command_str.length(); i++) {
 		
@@ -94,6 +87,35 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 			while(command_str[++i] == ' ' );
 			start_index = i;
 		}
+	}
+	
+}
+
+
+void chat_machine::tokenize_request(char* request, char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
+	
+	std::string input(request);
+	int start = 0;
+	for (int i = 0; input[i] != 0; i++) {
+		
+		if (input[i] == -1) {
+			
+			std::string clause = input.substr(start, (i - start));
+			
+			if (COMMAND[0] == 0) {
+				strcpy(COMMAND, clause.c_str());
+				printf("command is: %s\n", COMMAND);
+			} else if (ARG_ONE[0] == 0) {
+				strcpy(ARG_ONE, clause.c_str());
+				printf("command is: %s\n", ARG_ONE);
+			} else if (ARG_TWO[0] == 0) {
+				strcpy(ARG_TWO, clause.c_str());
+				printf("command is: %s\n", ARG_TWO);
+			}
+			
+			start = i + 1;
+		}
+		
 	}
 	
 }

@@ -81,6 +81,8 @@ void chat_client::server_handler() {
 	} else {
 		// we got some data from the server
 		printf("message received was: %s\n", input);
+		
+		memset(&input, 0, sizeof input);
         
 	}				
 }
@@ -141,15 +143,24 @@ void chat_client::send(char* client_ip, char* msg) {
 	
 	char message[300] = "";
 	
-	strcpy(message, client_ip);
+	char* COMMAND = "SEND";
+	char* ARG_ONE = client_ip;
+	char* ARG_TWO = msg;
+	
+	strcpy(message, COMMAND);
 	strcat(message, break_msg);
-	strcat(message, msg);
+	strcat(message, ARG_ONE);
+	strcat(message, break_msg);
+	strcat(message, ARG_TWO);
+	strcat(message, break_msg);
+	
+	printf("sending message: %s\n", message);
 	
 	if (FD_ISSET(server_socket, &living_fds)) {
-		if (::send(server_socket, message, strlen(msg), 0) == -1) {
+		if (int nbytes = ::send(server_socket, message, strlen(message), 0) == -1) {
 			printf("error sending message\n");
 		} else {
-			printf("message sent successfully\n");
+			printf("message sent %d bytes successfully\n", nbytes);
 		}
 	}
 }

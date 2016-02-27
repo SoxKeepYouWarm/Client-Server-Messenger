@@ -10,6 +10,7 @@
 
 #include "../include/global.h"
 #include "../include/logger.h"
+#include "utility.h"
 
 #include <iostream>
 
@@ -39,7 +40,12 @@ class chat_machine {
     virtual void print_list();
 	virtual void exit_program();
 	
-	virtual void tokenize_command(char* input, 
+	virtual void tokenize_command(char* command, 
+		char* COMMAND, 
+		char* ARG_ONE, 
+		char* ARG_TWO);
+		
+	virtual void tokenize_request(char* request, 
 		char* COMMAND, 
 		char* ARG_ONE, 
 		char* ARG_TWO);
