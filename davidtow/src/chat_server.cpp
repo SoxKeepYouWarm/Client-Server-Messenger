@@ -125,9 +125,9 @@ void chat_server::listener_handler() {
 		
 		int associated_socket = newfd;
 		char client_ip[32] = "";
-		char client_port[32]; 
-		char hostname[32];
-		char service[32];
+		char client_port[32] = ""; 
+		char hostname[32] = "";
+		char service[32] = "";
 		
 		strcpy(client_ip, inet_ntop(remoteaddr.ss_family,
 			::get_in_addr((struct sockaddr*)&remoteaddr),
@@ -169,8 +169,7 @@ void chat_server::client_handler(int i) {
 		char* request = (char*) buf;
 		proccess_request(i, request);
 		
-		
-		
+		/*
         for(int j = 0; j <= fdmax; j++) {
 			// send to everyone!
 			if (FD_ISSET(j, &master)) {
@@ -184,12 +183,20 @@ void chat_server::client_handler(int i) {
 				}
 			}
 		}
+		*/
 		memset(&buf, 0, sizeof buf);
 	}				
 }
 
 
 void chat_server::proccess_request(int sender_socket, char* request) {
+	
+	char* sender_ip; 
+	for (int i = 0; i < user_list.size(); i++) {
+		if (user_list.at(i).associated_socket == sender_socket) {
+			sender_ip = user_list.at(i).ip;
+		}
+	}
 	
 	char* COMMAND = new char[32]();
 	char* ARG_ONE = new char[32]();
@@ -230,6 +237,10 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		
 		user_list.push_back(new_user);
 		
+		printf("This is a new user\n");
+		printf("new user ip is %s\n", ip);
+		printf("new user port is %s\n", host);
+		printf("new user host is \"%s\"\n", host);
 		printf("new user list size is %d\n", user_list.size());
 		
 	} else {
@@ -242,7 +253,32 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		// check if user has any pending messages
 		if ( ! this_user->saved_messages.empty()) {
 			// user has unreceived messages
-			
+			while ( ! this_user->saved_messages.empty()) {
+				
+				// get the most recent message
+				message next_message = this_user->saved_messages.front();
+				char* msg_sender = next_message.sender;
+				char* msg_content = next_message.msg;
+				
+				// ("msg from:%s\n[msg]:%s\n", client-ip, msg)
+				char buffer[300] = "";
+				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
+				
+				if (FD_ISSET(socket, &master)) {
+					
+					if (int out_bytes = ::send(socket, buffer, nbytes, 0) == -1) {
+						perror("send");
+					} else {
+						printf("message sent %d bytes successfully\n", nbytes);
+						
+						// pop that message off the stack
+						this_user->saved_messages.pop();
+					}
+				
+				} else {
+					printf("socket is not ready to receive stored messages\n");
+				}
+			}
 		} 
 		
 	}
@@ -255,8 +291,31 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 }
 
 
-void chat_server::handle_send(char* target, char* message) {
-	printf("in handle_send target: %s and message: %s", target, message);
+void chat_server::handle_logout(int socket) {
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		if (user_list.at(i).associated_socket == socket) {
+			user_list.at(i).associated_socket = -1;
+		}
+	}
+	
+}
+
+
+void chat_server::handle_send(char* target_ip, char* message) {
+	printf("in handle_send target: %s and message: %s", target_ip, message);
+	
+	int target_socket = -1;
+	for (int i = 0; i < user_list.size(); i++) {
+		if (str_equals(user_list.at(i).ip, target_ip)) {
+			// found target user
+			if (user_list.at(i).associated_socket == -1) {
+				//
+			}
+			user_list.at(i).associated_socket = -1;
+		}
+	}
+	
 }
 
 
