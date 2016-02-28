@@ -5,7 +5,7 @@
 #define STDOUT 1
 #define STDERR 2
 
-#define BUFFERSIZE 256
+#define BUFFERSIZE 300
 #define MAXIMUM_CONNECTIONS 10
 
 #include "../include/global.h"
@@ -15,6 +15,7 @@
 #include <iostream>
 
 #include <sstream>
+#include <string>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

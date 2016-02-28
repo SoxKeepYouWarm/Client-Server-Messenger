@@ -21,3 +21,11 @@ int str_equals(char* a, char* b) {
     }
     return 1;
 }
+
+
+std::string toString(int val)
+{
+    std::stringstream stream;
+    stream << val;
+    return stream.str();
+}

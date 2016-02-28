@@ -1,5 +1,4 @@
 #include "chat_machine.h"
-#include <string.h>
 
 const char* MESSAGE = "This function cannot be performed on this machine\n";
 
@@ -113,13 +112,13 @@ void chat_machine::tokenize_request(char* request, char* COMMAND, char* ARG_ONE,
 			
 			if (COMMAND[0] == 0) {
 				strcpy(COMMAND, clause.c_str());
-				printf("command is: %s\n", COMMAND);
+				printf("COMMAND is: %s\n", COMMAND);
 			} else if (ARG_ONE[0] == 0) {
 				strcpy(ARG_ONE, clause.c_str());
-				printf("command is: %s\n", ARG_ONE);
+				printf("ARG_ONE is: %s\n", ARG_ONE);
 			} else if (ARG_TWO[0] == 0) {
 				strcpy(ARG_TWO, clause.c_str());
-				printf("command is: %s\n", ARG_TWO);
+				printf("ARG_TWO is: %s\n", ARG_TWO);
 			}
 			
 			start = i + 1;
@@ -136,13 +135,11 @@ void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 	
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    const char* kGoogleDnsIp = "8.8.8.8";
-    uint16_t kDnsPort = 53;
     struct sockaddr_in serv;
     memset(&serv, 0, sizeof(serv));
     serv.sin_family = AF_INET;
-    serv.sin_addr.s_addr = inet_addr(kGoogleDnsIp);
-    serv.sin_port = htons(kDnsPort);
+    serv.sin_addr.s_addr = inet_addr("8.8.8.8");
+    serv.sin_port = htons((uint16_t) 53);
 
     int err = connect(sock, (const sockaddr*) &serv, sizeof(serv));
 	if (err == -1) {
@@ -176,9 +173,9 @@ void chat_machine::handle_input(char* input) {
 	
 	tokenize_command(input, COMMAND, ARG_ONE, ARG_TWO);
 	
-	printf("command is: %s\n", COMMAND);
-	printf("arg_one is: %s\n", ARG_ONE);
-	printf("arg_two is: %s\n", ARG_TWO);
+	printf("COMMAND is: %s\n", COMMAND);
+	printf("ARG_ONE is: %s\n", ARG_ONE);
+	printf("ARG_TWO is: %s\n", ARG_TWO);
 	
     if (str_equals(COMMAND, "AUTHOR")) {
         printf("COMMAND was AUTHOR\n");

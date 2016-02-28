@@ -1,4 +1,5 @@
 #include "chat_server.h"
+#include <algorithm>
 
 chat_server::chat_server(char* port) {
 	memset(&buf, 0, sizeof buf);
@@ -102,14 +103,6 @@ unsigned short get_in_port(struct sockaddr *sa)
 }
 
 
-std::string toString(int val)
-{
-    std::stringstream stream;
-    stream << val;
-    return stream.str();
-}
-
-
 void chat_server::listener_handler() {
 	
     addrlen = sizeof remoteaddr;
@@ -169,21 +162,6 @@ void chat_server::client_handler(int i) {
 		char* request = (char*) buf;
 		proccess_request(i, request);
 		
-		/*
-        for(int j = 0; j <= fdmax; j++) {
-			// send to everyone!
-			if (FD_ISSET(j, &master)) {
-				// except the listener and ourselves
-				if (j != listener) {
-					if (int out_bytes = ::send(j, buf, nbytes, 0) == -1) {
-						perror("send");
-					} else {
-						printf("message sent %d bytes successfully\n", nbytes);
-					}
-				}
-			}
-		}
-		*/
 		memset(&buf, 0, sizeof buf);
 	}				
 }
@@ -204,11 +182,16 @@ void chat_server::proccess_request(int sender_socket, char* request) {
 	
 	tokenize_request(request, COMMAND, ARG_ONE, ARG_TWO);
 	
+	printf("command is: %s\n", COMMAND);
+	printf("arg_one is: %s\n", ARG_ONE);
+	printf("arg_two is: %s\n", ARG_TWO);
+	
 	if (str_equals(COMMAND, "SEND")) {
-        printf("COMMAND was AUTHOR\n");
-        this->handle_send(ARG_ONE, ARG_TWO);
+        printf("COMMAND was SEND\n");
+        this->handle_send(sender_ip, ARG_ONE, ARG_TWO);
     } else if (str_equals(COMMAND, "BROADCAST")) {
-		this->handle_broadcast(sender_socket, ARG_TWO);
+		printf("COMMAND was BROADCAST\n");
+		this->handle_broadcast(sender_socket, sender_ip, ARG_TWO);
 	}
 	
 }
@@ -260,16 +243,15 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 				char* msg_sender = next_message.sender;
 				char* msg_content = next_message.msg;
 				
-				// ("msg from:%s\n[msg]:%s\n", client-ip, msg)
 				char buffer[300] = "";
 				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
 				
 				if (FD_ISSET(socket, &master)) {
 					
-					if (int out_bytes = ::send(socket, buffer, nbytes, 0) == -1) {
+					if (int out_bytes = ::send(socket, buffer, sizeof buffer, 0) == -1) {
 						perror("send");
 					} else {
-						printf("message sent %d bytes successfully\n", nbytes);
+						printf("message sent %d bytes successfully\n", out_bytes);
 						
 						// pop that message off the stack
 						this_user->saved_messages.pop();
@@ -282,11 +264,6 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		} 
 		
 	}
-	
-	printf("selectserver: new connection from %s on "
-			"socket %d\n", ip, socket);
-	printf("port is %s\n", port);
-	printf("host is \"%s\"\n", host);
 	
 }
 
@@ -302,25 +279,71 @@ void chat_server::handle_logout(int socket) {
 }
 
 
-void chat_server::handle_send(char* target_ip, char* message) {
+void chat_server::handle_send(char* sender_ip, char* target_ip, char* message) {
 	printf("in handle_send target: %s and message: %s", target_ip, message);
 	
-	int target_socket = -1;
 	for (int i = 0; i < user_list.size(); i++) {
+		
 		if (str_equals(user_list.at(i).ip, target_ip)) {
 			// found target user
-			if (user_list.at(i).associated_socket == -1) {
-				//
+			user* target_user = &user_list.at(i);
+			
+			for (int j = 0; j < target_user->black_list.size(); j++) {
+				
+				char blacklist_ip[32];
+				strcpy(blacklist_ip, target_user->black_list.at(j).c_str());
+				
+				if (str_equals(blacklist_ip, sender_ip)) {
+					// receiver has blacklisted this sender
+					return;
+				}
 			}
-			user_list.at(i).associated_socket = -1;
+			
+			// the sender is not blacklisted
+			
+			int target_socket = target_user->associated_socket;
+			
+			if (target_socket == -1) {
+				// user is offline, save message
+				struct message new_message;
+				strcpy(new_message.sender, sender_ip);
+				strcpy(new_message.msg, message);
+				
+				target_user->saved_messages.push(new_message);
+				
+			} else {
+				// user is online, send message
+				
+				char buffer[300] = "";
+				sprintf(buffer, "msg from:%s\n[msg]:%s\n", sender_ip, message);
+				
+				if (FD_ISSET(target_socket, &master)) {
+					
+					if (int out_bytes = ::send(target_socket, buffer, 300, 0) == -1) {
+						perror("send");
+					} else {
+						printf("message sent %d bytes successfully\n", out_bytes);
+					}
+				
+				}
+			
+			}
+			
 		}
 	}
 	
 }
 
 
-void chat_server::handle_broadcast(int sender_socket, char* message) {
-	printf("in handle_broadcast sender: %d and message: %s", sender_socket, message);
+void chat_server::handle_broadcast(int sender_socket, char* sender_ip, char* message) {
+	printf("in handle_broadcast sender: %s and message: %s", sender_ip, message);
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		if (user_list.at(i).associated_socket != sender_socket) {
+			// every user except the sender
+			handle_send(sender_ip, user_list.at(i).ip, message);
+		}
+	}
 }
 
 
@@ -370,6 +393,34 @@ void chat_server::main() {
 	
 	printf("outside while loop, this must be an error\n");
 	
+}
+
+
+void chat_server::generate_list() {
+	
+	std::vector<user> user_copy = user_list;
+	std::sort(user_copy.begin(), user_copy.end());
+	
+	memset(&LIST_PRINTABLE, 0, sizeof LIST_PRINTABLE);
+	
+	for (int i = 0; i < user_copy.size(); i++) {
+		user* usr = &user_copy.at(i);
+		
+		char line_buffer[50] = "";
+		sprintf(line_buffer, 
+			"%-5d%-35s%-20s%-8d\n", i, usr->hostname, usr->ip, usr->remote_port);
+			
+		strcat(LIST_PRINTABLE, line_buffer);
+	}
+	
+}
+
+
+void chat_server::print_list() {
+	generate_list();
+	cse4589_print_and_log("[%s:SUCCESS]\n", "LIST");
+	cse4589_print_and_log(LIST_PRINTABLE);
+	cse4589_print_and_log("[%s:END]\n", "LIST");
 }
 
 

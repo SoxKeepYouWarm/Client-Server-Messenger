@@ -17,12 +17,19 @@ class chat_server: public chat_machine {
 		char ip[32];
 		char hostname[32];
 		char remote_port[32];
-		char black_list[32][32];
+		int messages_sent;
+		int messages_received;
+		std::vector<std::string> black_list;
 		int associated_socket;
 		std::queue<message> saved_messages;
+		
+		bool operator < (const user& another_user) const {
+        	return (atoi(remote_port) < atoi(another_user.remote_port));
+    	}
 	};
 	
 	std::vector<user> user_list;
+	char LIST_PRINTABLE[300];
 	
 	char input[BUFFERSIZE];
 	
@@ -54,8 +61,8 @@ class chat_server: public chat_machine {
 	void proccess_request(int sender_socket, char* request);
 	void handle_login(int socket, char* ip, char* port, char* host);
 	void handle_logout(int socket);
-	void handle_send(char* target, char* message);
-	void handle_broadcast(int sender_socket, char* message);
+	void handle_send(char* sender_ip, char* target, char* message);
+	void handle_broadcast(int sender_socket, char* sender_ip, char* message);
 	
     public:
     chat_server(char* port);
@@ -63,6 +70,8 @@ class chat_server: public chat_machine {
     
     void main();
 
+	void generate_list();
+	void print_list();
     void print_statistics();
     void print_blocked(char* client_ip);
 	
