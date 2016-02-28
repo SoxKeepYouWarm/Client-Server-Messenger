@@ -161,24 +161,16 @@ void chat_client::login(char* server_ip, char* server_port) {
 	this->connect_to_server();
 }
 
+
 void chat_client::send(char* client_ip, char* msg) {
-    
-	char break_msg[2];
-	break_msg[0] = -1;
-	break_msg[1] = '\0';
 	
-	char message[300] = "";
+	char* message = new char[300]();
 	
 	char* COMMAND = "SEND";
 	char* ARG_ONE = client_ip;
 	char* ARG_TWO = msg;
 	
-	strcpy(message, COMMAND);
-	strcat(message, break_msg);
-	strcat(message, ARG_ONE);
-	strcat(message, break_msg);
-	strcat(message, ARG_TWO);
-	strcat(message, break_msg);
+	stringify_command(message, 300, COMMAND, ARG_ONE, ARG_TWO);
 	
 	printf("sending message: %s\n", message);
 	
@@ -191,20 +183,84 @@ void chat_client::send(char* client_ip, char* msg) {
 	}
 }
 
-void chat_client::broadcast(char* message) {
+void chat_client::broadcast(char* msg) {
     
+	char* message = new char[300]();
+	
+	char* COMMAND = "BROADCAST";
+	char* ARG_ONE = msg;
+	
+	stringify_command(message, 300, COMMAND, ARG_ONE, NULL);
+	
+	printf("sending broadcast: %s\n", message);
+	
+	if (FD_ISSET(server_socket, &living_fds)) {
+		if (int nbytes = ::send(server_socket, message, strlen(message), 0) == -1) {
+			printf("error sending broadcast\n");
+		} else {
+			printf("broadcast sent %d bytes successfully\n", nbytes);
+		}
+	}
 }
 
 void chat_client::block(char* client_ip) {
     
+	char* message = new char[300]();
+	
+	char* COMMAND = "BLOCK";
+	char* ARG_ONE = client_ip;
+	
+	stringify_command(message, 300, COMMAND, ARG_ONE, NULL);
+	
+	printf("sending block: %s\n", message);
+	
+	if (FD_ISSET(server_socket, &living_fds)) {
+		if (int nbytes = ::send(server_socket, message, strlen(message), 0) == -1) {
+			printf("error sending block\n");
+		} else {
+			printf("block sent %d bytes successfully\n", nbytes);
+		}
+	}
 }
 
 void chat_client::unblock(char* client_ip) {
     
+	char* message = new char[300]();
+	
+	char* COMMAND = "UNBLOCK";
+	char* ARG_ONE = client_ip;
+	
+	stringify_command(message, 300, COMMAND, ARG_ONE, NULL);
+	
+	printf("sending unblock: %s\n", message);
+	
+	if (FD_ISSET(server_socket, &living_fds)) {
+		if (int nbytes = ::send(server_socket, message, strlen(message), 0) == -1) {
+			printf("error sending unblock\n");
+		} else {
+			printf("block sent %d bytes successfully\n", nbytes);
+		}
+	}
+	
 }
 
 void chat_client::refresh() {
     
+	char* message = new char[300]();
+	
+	char* COMMAND = "REFRESH";
+	
+	stringify_command(message, 300, COMMAND, NULL, NULL);
+	
+	printf("sending refresh: %s\n", message);
+	
+	if (FD_ISSET(server_socket, &living_fds)) {
+		if (int nbytes = ::send(server_socket, message, strlen(message), 0) == -1) {
+			printf("error sending refresh\n");
+		} else {
+			printf("refresh sent %d bytes successfully\n", nbytes);
+		}
+	}
 }
 
 void chat_client::logout() {
@@ -216,6 +272,10 @@ void chat_client::logout() {
 	} else {
 		printf("user is not currently logged in\n");
 	}
+	
+	create_server_socket();
+	bind_socket_port();
+	
 }
 
 void chat_client::exit_program() {

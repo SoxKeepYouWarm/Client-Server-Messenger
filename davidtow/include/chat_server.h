@@ -63,6 +63,11 @@ class chat_server: public chat_machine {
 	void handle_logout(int socket);
 	void handle_send(char* sender_ip, char* target, char* message);
 	void handle_broadcast(int sender_socket, char* sender_ip, char* message);
+	void handle_block(int sender_socket, char* sender_ip, char* block_ip);
+	void handle_unblock(int sender_socket, char* sender_ip, char* block_ip);
+	void handle_refresh(int sender_socket);
+	
+	user* get_user_from_ip(char* ip); 
 	
     public:
     chat_server(char* port);

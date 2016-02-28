@@ -116,6 +116,19 @@ void chat_server::listener_handler() {
 			fdmax = newfd;
 		}
 		
+		generate_list();
+		
+		if (FD_ISSET(newfd, &master)) {
+		
+			if (int out_bytes = ::send(newfd, LIST_PRINTABLE, 300, 0) == -1) {
+				perror("send");
+			} else {
+				printf("new list sent %d bytes successfully\n", out_bytes);
+			}
+			
+		}	
+		
+		
 		int associated_socket = newfd;
 		char client_ip[32] = "";
 		char client_port[32] = ""; 
@@ -191,7 +204,16 @@ void chat_server::proccess_request(int sender_socket, char* request) {
         this->handle_send(sender_ip, ARG_ONE, ARG_TWO);
     } else if (str_equals(COMMAND, "BROADCAST")) {
 		printf("COMMAND was BROADCAST\n");
-		this->handle_broadcast(sender_socket, sender_ip, ARG_TWO);
+		this->handle_broadcast(sender_socket, sender_ip, ARG_ONE);
+	} else if (str_equals(COMMAND, "BLOCK")) {
+		printf("COMMAND was BLOCK\n");
+		this->handle_block(sender_socket, sender_ip, ARG_ONE);
+	} else if (str_equals(COMMAND, "UNBLOCK")) {
+		printf("COMMAND was UNBLOCK\n");
+		this->handle_unblock(sender_socket, sender_ip, ARG_ONE);
+	} else if (str_equals(COMMAND, "REFRESH")) {
+		printf("COMMAND was REFRESH\n");
+		this->handle_refresh(sender_socket);
 	}
 	
 }
@@ -246,6 +268,8 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 				char buffer[300] = "";
 				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
 				
+				
+				
 				if (FD_ISSET(socket, &master)) {
 					
 					if (int out_bytes = ::send(socket, buffer, sizeof buffer, 0) == -1) {
@@ -280,26 +304,21 @@ void chat_server::handle_logout(int socket) {
 
 
 void chat_server::handle_send(char* sender_ip, char* target_ip, char* message) {
-	printf("in handle_send target: %s and message: %s", target_ip, message);
+	printf("in handle_send target: %s and message: %s\n", target_ip, message);
 	
-	for (int i = 0; i < user_list.size(); i++) {
-		
-		if (str_equals(user_list.at(i).ip, target_ip)) {
-			// found target user
-			user* target_user = &user_list.at(i);
+	
+	user* target_user;
+	if (target_user = get_user_from_ip(target_ip)) {
+		// user exists
+		if ( std::find(target_user->black_list.begin(), 
+			target_user->black_list.end(), sender_ip) != target_user->black_list.end() ) {
+			// sender is blacklisted
+			// HANDLE ERROR
+		} else {
+			// sender is not blacklisted			
 			
-			for (int j = 0; j < target_user->black_list.size(); j++) {
-				
-				char blacklist_ip[32];
-				strcpy(blacklist_ip, target_user->black_list.at(j).c_str());
-				
-				if (str_equals(blacklist_ip, sender_ip)) {
-					// receiver has blacklisted this sender
-					return;
-				}
-			}
-			
-			// the sender is not blacklisted
+			//increment their message received counter
+			target_user->messages_received ++;
 			
 			int target_socket = target_user->associated_socket;
 			
@@ -330,6 +349,9 @@ void chat_server::handle_send(char* sender_ip, char* target_ip, char* message) {
 			}
 			
 		}
+	} else {
+		// user doesn't exist
+		// HANDLE ERROR
 	}
 	
 }
@@ -341,9 +363,76 @@ void chat_server::handle_broadcast(int sender_socket, char* sender_ip, char* mes
 	for (int i = 0; i < user_list.size(); i++) {
 		if (user_list.at(i).associated_socket != sender_socket) {
 			// every user except the sender
+			user_list.at(i).messages_sent ++;
 			handle_send(sender_ip, user_list.at(i).ip, message);
 		}
 	}
+}
+
+
+void chat_server::handle_block(int sender_socket, char* sender_ip, char* block_ip) {
+	
+	user* target_user;
+	if (target_user = get_user_from_ip(block_ip)) {
+		// target user exists
+		user* sender_user = get_user_from_ip(sender_ip);
+		if ( std::find(sender_user->black_list.begin(), 
+			sender_user->black_list.end(), block_ip) != sender_user->black_list.end() ) {
+			// user is already blocked
+			// DO NOTHING
+		} else {
+			// user is not currently blocked
+			sender_user->black_list.push_back(block_ip);
+		}
+		
+	} else {
+		// target user doesn't exist
+		// HANDLE ERROR
+	}
+	
+}
+
+
+void chat_server::handle_unblock(int sender_socket, char* sender_ip, char* unblock_ip) {
+	
+	user* target_user;
+	if (target_user = get_user_from_ip(unblock_ip)) {
+		// target user exists
+		user* sender_user = get_user_from_ip(sender_ip);
+		
+		// checking if user currently in blacklist
+		int pos = std::find(sender_user->black_list.begin(), 
+			sender_user->black_list.end(), unblock_ip) - sender_user->black_list.begin();
+		if (pos < sender_user->black_list.size()) {
+			// user is currently blocked
+			sender_user->black_list.erase(sender_user->black_list.begin() + pos);
+		} else {
+			// user is not currently blocked
+			// DO NOTHING
+		}
+		
+	} else {
+		// target user doesn't exist
+		// HANDLE ERROR
+	}
+	
+}
+
+
+void chat_server::handle_refresh(int sender_socket) {
+	
+	generate_list();
+	
+	if (FD_ISSET(sender_socket, &master)) {
+					
+		if (int out_bytes = ::send(sender_socket, LIST_PRINTABLE, 300, 0) == -1) {
+			perror("send");
+		} else {
+			printf("new list sent %d bytes successfully\n", out_bytes);
+		}
+				
+	}
+	
 }
 
 
@@ -398,6 +487,8 @@ void chat_server::main() {
 
 void chat_server::generate_list() {
 	
+	printf("currently inside generate_list\n");
+	
 	std::vector<user> user_copy = user_list;
 	std::sort(user_copy.begin(), user_copy.end());
 	
@@ -436,3 +527,76 @@ void chat_server::exit_program() {
 	printf("exit program was called\n");
 	exit(0);
 }
+
+chat_server::user* chat_server::get_user_from_ip(char* ip) {
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		
+		if (str_equals(user_list.at(i).ip, ip)) {
+			return &user_list.at(i);
+		}
+		
+	}
+	
+	return NULL;
+	
+}
+
+
+
+/* OLD SEND CODE
+
+for (int i = 0; i < user_list.size(); i++) {
+		
+		if (str_equals(user_list.at(i).ip, target_ip)) {
+			// found target user
+			user* target_user = &user_list.at(i);
+			
+			for (int j = 0; j < target_user->black_list.size(); j++) {
+				
+				char blacklist_ip[32];
+				strcpy(blacklist_ip, target_user->black_list.at(j).c_str());
+				
+				if (str_equals(blacklist_ip, sender_ip)) {
+					// receiver has blacklisted this sender
+					return;
+				}
+			}
+			
+			// the sender is not blacklisted
+			
+			//increment their message received counter
+			target_user->messages_received ++;
+			
+			int target_socket = target_user->associated_socket;
+			
+			if (target_socket == -1) {
+				// user is offline, save message
+				struct message new_message;
+				strcpy(new_message.sender, sender_ip);
+				strcpy(new_message.msg, message);
+				
+				target_user->saved_messages.push(new_message);
+				
+			} else {
+				// user is online, send message
+				
+				char buffer[300] = "";
+				sprintf(buffer, "msg from:%s\n[msg]:%s\n", sender_ip, message);
+				
+				if (FD_ISSET(target_socket, &master)) {
+					
+					if (int out_bytes = ::send(target_socket, buffer, 300, 0) == -1) {
+						perror("send");
+					} else {
+						printf("message sent %d bytes successfully\n", out_bytes);
+					}
+				
+				}
+			
+			}
+			
+		}
+	}
+	
+*/

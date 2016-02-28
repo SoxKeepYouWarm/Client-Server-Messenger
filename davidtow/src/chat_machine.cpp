@@ -129,6 +129,29 @@ void chat_machine::tokenize_request(char* request, char* COMMAND, char* ARG_ONE,
 }
 
 
+void chat_machine::stringify_command(char* string, int string_len, 
+			char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
+	
+	char break_msg[2];
+	break_msg[0] = -1;
+	break_msg[1] = '\0';
+	
+	memset(&string, 0, string_len);
+	
+	strcpy(string, COMMAND);
+	strcat(string, break_msg);
+	if (ARG_ONE) {
+		strcat(string, ARG_ONE);
+		strcat(string, break_msg);
+		if (ARG_TWO) {
+			strcat(string, ARG_TWO);
+			strcat(string, break_msg);
+		}
+	}
+	
+}
+
+
 void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 	
 	printf("find my ip was called\n");

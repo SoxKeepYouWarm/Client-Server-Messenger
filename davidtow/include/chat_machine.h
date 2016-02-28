@@ -51,6 +51,9 @@ class chat_machine {
 		char* COMMAND, 
 		char* ARG_ONE, 
 		char* ARG_TWO);
+		
+	virtual void stringify_command(char* string, int string_len, 
+			char* COMMAND, char* ARG_ONE, char* ARG_TWO);
 	
 	virtual void find_my_ip(char* buffer, size_t buflen);
 	
