@@ -29,7 +29,7 @@ class chat_server: public chat_machine {
 	};
 	
 	std::vector<user> user_list;
-	char LIST_PRINTABLE[300];
+	char LIST_PRINTABLE[600];
 	
 	char input[BUFFERSIZE];
 	

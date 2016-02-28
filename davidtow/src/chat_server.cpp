@@ -131,21 +131,23 @@ void chat_server::listener_handler() {
 		
 		int associated_socket = newfd;
 		char client_ip[32] = "";
-		char client_port[32] = ""; 
+		//char client_port[32] = ""; 
 		char hostname[32] = "";
-		char service[32] = "";
+		char client_port[32] = "";
 		
 		strcpy(client_ip, inet_ntop(remoteaddr.ss_family,
 			::get_in_addr((struct sockaddr*)&remoteaddr),
 			remoteIP, INET6_ADDRSTRLEN));
 			
-		int temp_int = ntohs(get_in_port((struct sockaddr*)&remoteaddr));
-		std::string temp = toString(temp_int);
-		strcpy(client_port, temp.c_str());
+		//int temp_int = ntohs(get_in_port((struct sockaddr*)&remoteaddr));
+		//std::string temp = toString(temp_int);
+		//strcpy(client_port, temp.c_str());
 			
 		getnameinfo((struct sockaddr*)&remoteaddr, 
 			sizeof remoteaddr, 
-			hostname, sizeof hostname, service, sizeof service, 0);
+			hostname, sizeof hostname, client_port, sizeof client_port, 0);
+			
+		printf("service is %s\n", client_port);
 			
 		handle_login(associated_socket, client_ip, client_port, hostname);
 			
@@ -232,7 +234,6 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 	
 	if (this_user == NULL) {
 		// this is a new user
-		printf("This is a new user\n");
 		
 		struct user new_user;
 		strcpy(new_user.ip, ip);
@@ -244,7 +245,7 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		
 		printf("This is a new user\n");
 		printf("new user ip is %s\n", ip);
-		printf("new user port is %s\n", host);
+		printf("new user port is %s\n", port);
 		printf("new user host is \"%s\"\n", host);
 		printf("new user list size is %d\n", user_list.size());
 		
@@ -489,17 +490,17 @@ void chat_server::generate_list() {
 	
 	printf("currently inside generate_list\n");
 	
-	std::vector<user> user_copy = user_list;
-	std::sort(user_copy.begin(), user_copy.end());
+	//std::vector<user> user_copy = user_list;
+	std::sort(user_list.begin(), user_list.end());
 	
 	memset(&LIST_PRINTABLE, 0, sizeof LIST_PRINTABLE);
 	
-	for (int i = 0; i < user_copy.size(); i++) {
-		user* usr = &user_copy.at(i);
+	for (int i = 0; i < user_list.size(); i++) {
+		user* usr = &user_list.at(i);
 		
-		char line_buffer[50] = "";
+		char line_buffer[100] = "";
 		sprintf(line_buffer, 
-			"%-5d%-35s%-20s%-8d\n", i, usr->hostname, usr->ip, usr->remote_port);
+			"%-5d%-35s%-20s%-8d\n", i, usr->hostname, usr->ip, atoi(usr->remote_port));
 			
 		strcat(LIST_PRINTABLE, line_buffer);
 	}
@@ -519,14 +520,17 @@ void chat_server::print_statistics() {
     printf("running statistics in chat server\n");
 }
 
+
 void chat_server::print_blocked(char* client_ip) {
     
 }
+
 
 void chat_server::exit_program() {
 	printf("exit program was called\n");
 	exit(0);
 }
+
 
 chat_server::user* chat_server::get_user_from_ip(char* ip) {
 	
@@ -541,62 +545,3 @@ chat_server::user* chat_server::get_user_from_ip(char* ip) {
 	return NULL;
 	
 }
-
-
-
-/* OLD SEND CODE
-
-for (int i = 0; i < user_list.size(); i++) {
-		
-		if (str_equals(user_list.at(i).ip, target_ip)) {
-			// found target user
-			user* target_user = &user_list.at(i);
-			
-			for (int j = 0; j < target_user->black_list.size(); j++) {
-				
-				char blacklist_ip[32];
-				strcpy(blacklist_ip, target_user->black_list.at(j).c_str());
-				
-				if (str_equals(blacklist_ip, sender_ip)) {
-					// receiver has blacklisted this sender
-					return;
-				}
-			}
-			
-			// the sender is not blacklisted
-			
-			//increment their message received counter
-			target_user->messages_received ++;
-			
-			int target_socket = target_user->associated_socket;
-			
-			if (target_socket == -1) {
-				// user is offline, save message
-				struct message new_message;
-				strcpy(new_message.sender, sender_ip);
-				strcpy(new_message.msg, message);
-				
-				target_user->saved_messages.push(new_message);
-				
-			} else {
-				// user is online, send message
-				
-				char buffer[300] = "";
-				sprintf(buffer, "msg from:%s\n[msg]:%s\n", sender_ip, message);
-				
-				if (FD_ISSET(target_socket, &master)) {
-					
-					if (int out_bytes = ::send(target_socket, buffer, 300, 0) == -1) {
-						perror("send");
-					} else {
-						printf("message sent %d bytes successfully\n", out_bytes);
-					}
-				
-				}
-			
-			}
-			
-		}
-	}
-	
-*/
