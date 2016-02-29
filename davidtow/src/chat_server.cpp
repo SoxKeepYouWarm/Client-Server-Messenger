@@ -174,9 +174,11 @@ void chat_server::client_handler(int i) {
 void chat_server::proccess_request(int sender_socket, char* request) {
 	
 	char* sender_ip; 
+	char* sender_port;
 	for (int i = 0; i < user_list.size(); i++) {
 		if (user_list.at(i).associated_socket == sender_socket) {
 			sender_ip = user_list.at(i).ip;
+			sender_port = user_list.at(i).remote_port;
 		}
 	}
 	
@@ -192,16 +194,16 @@ void chat_server::proccess_request(int sender_socket, char* request) {
 	
 	if (str_equals(COMMAND, "SEND")) {
         printf("COMMAND was SEND\n");
-        this->handle_send(sender_ip, ARG_ONE, ARG_TWO, 0);
+        this->handle_send(sender_socket, ARG_ONE, ARG_TWO, 0);
     } else if (str_equals(COMMAND, "BROADCAST")) {
 		printf("COMMAND was BROADCAST\n");
-		this->handle_broadcast(sender_socket, sender_ip, ARG_ONE);
+		this->handle_broadcast(sender_socket, ARG_ONE);
 	} else if (str_equals(COMMAND, "BLOCK")) {
 		printf("COMMAND was BLOCK\n");
-		this->handle_block(sender_socket, sender_ip, ARG_ONE);
+		this->handle_block(sender_socket, ARG_ONE);
 	} else if (str_equals(COMMAND, "UNBLOCK")) {
 		printf("COMMAND was UNBLOCK\n");
-		this->handle_unblock(sender_socket, sender_ip, ARG_ONE);
+		this->handle_unblock(sender_socket, ARG_ONE);
 	} else if (str_equals(COMMAND, "REFRESH")) {
 		printf("COMMAND was REFRESH\n");
 		this->handle_refresh(sender_socket);
@@ -327,17 +329,20 @@ void chat_server::handle_logout(int socket) {
 }
 
 
-void chat_server::handle_send(char* sender_ip, char* target_ip, char* message, int IS_BROADCAST) {
+void chat_server::handle_send(int sender_socket, char* target_ip, char* message, int IS_BROADCAST) {
 	printf("in handle_send target: %s and message: %s\n", target_ip, message);
+	
+	user* sender_user = get_user_from_socket(sender_socket);
+	char* sender_ip = sender_user->ip;
 	
 	// ("msg from:%s, to:%s\n[msg]:%s\n", from-client-ip, to-client-ip, msg)
 	// [Update] In case of a broadcast message, <to-client-ip> will be 255.255.255.255
 	// For the purposes of printing/logging, use command_str: RELAYED
 	if (! IS_BROADCAST) {
-		cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+		cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
 		cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
 				sender_ip, target_ip, message);
-		cse4589_print_and_log("[%s:END]\n", "SEND");	
+		cse4589_print_and_log("[%s:END]\n", "RELAYED");	
 	}		
 	
 	
@@ -386,12 +391,28 @@ void chat_server::handle_send(char* sender_ip, char* target_ip, char* message, i
 	} else {
 		// user doesn't exist
 		// HANDLE ERROR
+		/*
+		if (FD_ISSET(sender_socket, &master)) {
+					
+			if (int out_bytes = ::send(target_socket, buffer, 300, 0) == -1) {
+				perror("send");
+			} else {
+				printf("message sent %d bytes successfully\n", out_bytes);
+			}
+				
+		}
+		*/
+		
 	}
 	
 }
 
 
-void chat_server::handle_broadcast(int sender_socket, char* sender_ip, char* message) {
+void chat_server::handle_broadcast(int sender_socket, char* message) {
+	
+	user* sender_user = get_user_from_socket(sender_socket);
+	char* sender_ip = sender_user->ip;
+	
 	printf("in handle_broadcast sender: %s and message: %s", sender_ip, message);
 	
 	for (int i = 0; i < user_list.size(); i++) {
@@ -405,22 +426,21 @@ void chat_server::handle_broadcast(int sender_socket, char* sender_ip, char* mes
 			
 			cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
 			cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
-					sender_ip, "255.255.255.255", message);
+					sender_user->ip, "255.255.255.255", message);
 			cse4589_print_and_log("[%s:END]\n", "RELAYED");
 			
 			
-			handle_send(sender_ip, user_list.at(i).ip, message, 1);
+			handle_send(sender_socket, user_list.at(i).ip, message, 1);
 		}
 	}
 }
 
 
-void chat_server::handle_block(int sender_socket, char* sender_ip, char* block_ip) {
+void chat_server::handle_block(int sender_socket, char* block_ip) {
 	
-	user* target_user;
-	if (target_user = get_user_from_ip(block_ip)) {
+	if (is_user_registered_at_ip(block_ip)) {
 		// target user exists
-		user* sender_user = get_user_from_ip(sender_ip);
+		user* sender_user = get_user_from_socket(sender_socket);
 		if ( std::find(sender_user->black_list.begin(), 
 			sender_user->black_list.end(), block_ip) != sender_user->black_list.end() ) {
 			// user is already blocked
@@ -438,12 +458,11 @@ void chat_server::handle_block(int sender_socket, char* sender_ip, char* block_i
 }
 
 
-void chat_server::handle_unblock(int sender_socket, char* sender_ip, char* unblock_ip) {
+void chat_server::handle_unblock(int sender_socket, char* unblock_ip) {
 	
-	user* target_user;
-	if (target_user = get_user_from_ip(unblock_ip)) {
+	if (is_user_registered_at_ip(unblock_ip)) {
 		// target user exists
-		user* sender_user = get_user_from_ip(sender_ip);
+		user* sender_user = get_user_from_socket(sender_socket);
 		
 		// checking if user currently in blacklist
 		int pos = std::find(sender_user->black_list.begin(), 
@@ -577,11 +596,83 @@ void chat_server::print_list() {
 
 void chat_server::print_statistics() {
     printf("running statistics in chat server\n");
+	
+	std::sort(user_list.begin(), user_list.end());
+	
+	//std::string final_stats;
+	char stats_printable[600] = "";
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		
+		user* usr = &user_list.at(i);
+		const char* status;
+		if (usr->associated_socket != -1) {
+			status = "online";
+		} else {
+			status = "offline";
+		}
+		
+		//std::string stats_line;
+		char stats_line[100];
+		sprintf(stats_line, "%-5d%-35s%-8d%-8d%-8s\n", 
+				i, usr->hostname, usr->messages_sent, usr->messages_received, status);
+				
+		strcat(stats_printable, stats_line);
+		
+	}
+	
+	cse4589_print_and_log("[%s:SUCCESS]\n", "STATISTICS");
+	cse4589_print_and_log(stats_printable);
+	cse4589_print_and_log("[%s:END]\n", "STATISTICS");
+	
 }
 
 
 void chat_server::print_blocked(char* client_ip) {
     
+	std::vector<user> blocked_list;
+	
+	user* usr;
+	if (usr = get_user_from_ip(client_ip)) {
+		
+		for (int i = 0; i < usr->black_list.size(); i++) {
+			
+			const char* temp = usr->black_list.at(i).c_str();
+			char block_ip[32] = "";
+			strcpy(block_ip, temp);
+			
+			user block_user = *get_user_from_ip(block_ip);
+			blocked_list.push_back(block_user);
+			
+		}
+		
+		std::sort(blocked_list.begin(), blocked_list.end());
+		
+		char blocked_printable[600] = "";
+		
+		for (int i = 0; i < blocked_list.size(); i++) {
+		
+			user* usr = &blocked_list.at(i);
+		
+			if (usr->associated_socket != -1) {
+				// user is online
+				char line_buffer[100] = "";
+			
+				sprintf(line_buffer, 
+				"%-5d%-35s%-20s%-8d\n", i, usr->hostname, usr->ip, atoi(usr->remote_port));
+			
+				strcat(LIST_PRINTABLE, line_buffer);
+			
+			} 
+		
+		}
+		
+		cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCKED");
+		cse4589_print_and_log(blocked_printable);
+		cse4589_print_and_log("[%s:END]\n", "BLOCKED");
+		
+	}
+
 }
 
 
@@ -606,73 +697,49 @@ chat_server::user* chat_server::get_user_from_ip(char* ip) {
 }
 
 
-/* OLD LOGIN CODE 
+chat_server::user* chat_server::get_user_from_ip_port(char* ip, char* port) {
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		
+		if (str_equals(user_list.at(i).ip, ip) && str_equals(user_list.at(i).remote_port, port)) {
+			return &user_list.at(i);
+		}
+		
+	}
+	
+	return NULL;
+	
+}
+
+
+int chat_server::is_user_registered_at_ip(char* ip) {
+	
+	for (int i = 0; i < user_list.size(); i++) {
+		
+		if (str_equals(user_list.at(i).ip, ip)) {
+			return 1;
+		}
+		
+	}
+	
+	return 0;
+	
+}
+
 
 /*
-	user* this_user = NULL;
+std::vector<chat_server::user> users_registered_at_ip(char* ip) {
+	
+}
+*/
+
+
+chat_server::user* chat_server::get_user_from_socket(int sender_socket) {
+	
 	for (int i = 0; i < user_list.size(); i++) {
-		if (str_equals(user_list.at(i).ip, ip)) {
-			this_user = &user_list.at(i);
+		if (user_list.at(i).associated_socket == sender_socket) {
+			return &user_list.at(i);
 		}
 	}
 	
-	printf("user list size is %d\n", user_list.size());
-	
-	if (this_user == NULL) {
-		// this is a new user
-		
-		struct user new_user;
-		strcpy(new_user.ip, ip);
-		strcpy(new_user.hostname, host);
-		strcpy(new_user.remote_port, port);
-		new_user.associated_socket = socket;
-		
-		user_list.push_back(new_user);
-		
-		printf("This is a new user\n");
-		printf("new user ip is %s\n", ip);
-		printf("new user port is %s\n", port);
-		printf("new user host is \"%s\"\n", host);
-		printf("new user list size is %d\n", user_list.size());
-		
-	} else {
-		//this is a returning user
-		printf("This is a returning user\n");
-		printf("returning user ip is %s\n", this_user->ip);
-		printf("returning user port is %s\n", this_user->remote_port);
-		printf("returning user host is \"%s\"\n", this_user->hostname);
-		
-		// check if user has any pending messages
-		if ( ! this_user->saved_messages.empty()) {
-			// user has unreceived messages
-			while ( ! this_user->saved_messages.empty()) {
-				
-				// get the most recent message
-				message next_message = this_user->saved_messages.front();
-				char* msg_sender = next_message.sender;
-				char* msg_content = next_message.msg;
-				
-				char buffer[300] = "";
-				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
-				
-				
-				
-				if (FD_ISSET(socket, &master)) {
-					
-					if (int out_bytes = ::send(socket, buffer, sizeof buffer, 0) == -1) {
-						perror("send");
-					} else {
-						printf("message sent %d bytes successfully\n", out_bytes);
-						
-						// pop that message off the stack
-						this_user->saved_messages.pop();
-					}
-				
-				} else {
-					printf("socket is not ready to receive stored messages\n");
-				}
-			}
-		} 
-		
-	}
-*/
+}

@@ -43,7 +43,7 @@ void chat_machine::print_port() {
 
 void chat_machine::print_author() {
 	cse4589_print_and_log("[%s:SUCCESS]\n", "AUTHOR");
-	cse4589_print_and_log("I, David Towson, have read and understood the course academic integrity policy.\n");
+	cse4589_print_and_log("I, davidtow, have read and understood the course academic integrity policy.\n");
 	cse4589_print_and_log("[%s:END]\n", "AUTHOR");
 }
 
@@ -232,6 +232,8 @@ void chat_machine::handle_input(char* input, int logged_in) {
 	printf("ARG_TWO is: \"%s\" size: %d\n", ARG_TWO, std::string(ARG_TWO).length());
 	
 	// only login exit and author allowed when logged out
+	
+	std::string comm_str(COMMAND);
 	
     if (str_equals(COMMAND, "AUTHOR")) {
         printf("COMMAND was AUTHOR\n");

@@ -131,8 +131,8 @@ void chat_client::server_handler() {
 void chat_client::main() {
 	printf("running main in chat client\n");
 	
-    create_server_socket();
-	bind_socket_port();
+    //create_server_socket();
+	//bind_socket_port();
 	
 	// clear read file descriptors
 	FD_ZERO(&living_fds);
@@ -172,6 +172,8 @@ void chat_client::main() {
 
 void chat_client::login(char* server_ip, char* server_port) {
     printf("login called in chat_client.cpp\n");
+	create_server_socket();
+	bind_socket_port();
 	this->set_server_addr(server_ip, server_port);
 	this->connect_to_server();
 }

@@ -61,13 +61,17 @@ class chat_server: public chat_machine {
 	void proccess_request(int sender_socket, char* request);
 	void handle_login(int socket, char* ip, char* port, char* host);
 	void handle_logout(int socket);
-	void handle_send(char* sender_ip, char* target, char* message, int IS_BROADCAST);
-	void handle_broadcast(int sender_socket, char* sender_ip, char* message);
-	void handle_block(int sender_socket, char* sender_ip, char* block_ip);
-	void handle_unblock(int sender_socket, char* sender_ip, char* block_ip);
+	void handle_send(int sender_socket, char* target_ip, char* message, int IS_BROADCAST);
+	void handle_broadcast(int sender_socket, char* message);
+	void handle_block(int sender_socket, char* block_ip);
+	void handle_unblock(int sender_socket, char* block_ip);
 	void handle_refresh(int sender_socket);
 	
+	int is_user_registered_at_ip(char* ip);
 	user* get_user_from_ip(char* ip); 
+	user* get_user_from_ip_port(char* ip, char* port); 
+	user* get_user_from_socket(int sender_socket);
+	//std::vector<user> users_registered_at_ip(char* ip);
 	
     public:
     chat_server(char* port);
