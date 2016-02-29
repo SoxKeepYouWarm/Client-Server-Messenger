@@ -266,6 +266,9 @@ void chat_client::broadcast(char* msg) {
 			printf("error sending broadcast\n");
 		} else {
 			printf("broadcast sent %d bytes successfully\n", nbytes);
+			cse4589_print_and_log("[%s:SUCCESS]\n", "BROADCAST");
+			cse4589_print_and_log("[%s:END]\n", "BROADCAST");
+			
 		}
 	}
 }
@@ -332,14 +335,22 @@ void chat_client::refresh() {
 	}
 }
 
+
 void chat_client::logout() {
     if (LOGGED_IN) {
 		close(server_socket); 
 		FD_CLR(server_socket, &living_fds); 
 		printf("user logged out\n");
 		LOGGED_IN = 0;
+		
+		cse4589_print_and_log("[%s:SUCCESS]\n", "LOGOUT");
+		cse4589_print_and_log("[%s:END]\n", "LOGOUT");
+		
 	} else {
 		printf("user is not currently logged in\n");
+		
+		cse4589_print_and_log("[%s:ERROR]\n", "LOGOUT");
+		cse4589_print_and_log("[%s:END]\n", "LOGOUT");
 	}
 	
 	create_server_socket();
@@ -357,6 +368,16 @@ void chat_client::print_list() {
 
 void chat_client::exit_program() {
 	printf("exit program was called\n");
-	this->logout();
+	
+	if (LOGGED_IN) {
+		close(server_socket); 
+		FD_CLR(server_socket, &living_fds); 
+		printf("user logged out\n");
+		LOGGED_IN = 0;
+	}
+	
+	cse4589_print_and_log("[%s:SUCCESS]\n", "EXIT");
+	cse4589_print_and_log("[%s:END]\n", "EXIT");
+		
 	exit(0);
 }

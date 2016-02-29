@@ -282,6 +282,8 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		strcpy(new_user.ip, ip);
 		strcpy(new_user.hostname, host);
 		strcpy(new_user.remote_port, port);
+		new_user.messages_sent = 0;
+		new_user.messages_received = 0;
 		new_user.associated_socket = socket;
 		
 		user_list.push_back(new_user);
@@ -352,7 +354,7 @@ void chat_server::handle_send(int sender_socket, char* target_ip, char* message,
 		
 		if (! IS_BROADCAST) {
 			
-			send_response(sender_socket, SEND_RESP, ERROR);
+			send_response(sender_socket, SEND_RESP, OK);
 			
 		}
 		
