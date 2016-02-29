@@ -5,7 +5,7 @@
 #define STDOUT 1
 #define STDERR 2
 
-#define BUFFERSIZE 300
+#define BUFFERSIZE 601
 #define MAXIMUM_CONNECTIONS 10
 
 #include "../include/global.h"
@@ -57,7 +57,7 @@ class chat_machine {
 	
 	virtual void find_my_ip(char* buffer, size_t buflen);
 	
-	void handle_input(char* command);
+	void handle_input(char* command, int logged_in);
 	
 	virtual void main() = 0;
     // COMMON METHODS

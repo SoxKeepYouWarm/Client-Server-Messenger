@@ -71,18 +71,47 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 			int offset_null = (command_str[i + 1] == '\0');
 			std::string word_str = command_str.substr(start_index, (i - start_index) + offset_null);
 			
-			std::cout << "word_str is: " << word_str << std::endl;
+			printf("word_str length is: %d\n", word_str.size());
 			
 			if (COMMAND[0] == '\0') {
-				strcpy(COMMAND, word_str.c_str());
+				
+				printf("word_str is %s\n", word_str.c_str());
+				if (word_str.size() <= 32){
+					strcpy(COMMAND, word_str.c_str());
+				} else {
+					COMMAND = "ERROR";
+				}
+				
 			} else if (ARG_ONE[0] == '\0') {
-				strcpy(ARG_ONE, word_str.c_str());
+				
+				printf("word_str is %s\n", word_str.c_str());
+				std::string comm(COMMAND);
+				int max_size = 32;
+				if (comm == "BROADCAST") { max_size = 256; }
+				
+				if (word_str.size() <= max_size){
+					strcpy(ARG_ONE, word_str.c_str());
+				} else { 
+					COMMAND = "ERROR"; 
+				}
+				
 			} else if (ARG_TWO[0] == '\0') {
 				
-				std::string remaining_string = command_str.substr(start_index);
-				std::cout << "remaining string is: " << remaining_string << std::endl;
+				printf("word_str is %s\n", word_str.c_str());
+				std::string comm(COMMAND);
+				printf("just initiated string\n");
+				int max_size = 32;
+				if (comm == "SEND") { max_size = 256; }
 				
-				strcpy(ARG_TWO, remaining_string.c_str());
+				std::string remaining_string = command_str.substr(start_index);
+				
+				if (remaining_string.size() <= max_size){
+					printf("about to copy arg_two\n");
+					strcpy(ARG_TWO, remaining_string.c_str());
+					printf("just copied arg_two\n");
+				} else { 
+					COMMAND = "ERROR"; 
+				}
 
 			} else {
 				break;
@@ -132,11 +161,13 @@ void chat_machine::tokenize_request(char* request, char* COMMAND, char* ARG_ONE,
 void chat_machine::stringify_command(char* string, int string_len, 
 			char* COMMAND, char* ARG_ONE, char* ARG_TWO) {
 	
+	printf("in stringify_command\n");
+	
 	char break_msg[2];
 	break_msg[0] = -1;
 	break_msg[1] = '\0';
 	
-	memset(&string, 0, string_len);
+	//memset(&string, 0, string_len);
 	
 	strcpy(string, COMMAND);
 	strcat(string, break_msg);
@@ -186,62 +217,71 @@ void chat_machine::find_my_ip(char* buffer, size_t buflen) {
 }
 
 
-void chat_machine::handle_input(char* input) {
+void chat_machine::handle_input(char* input, int logged_in) {
     
 	printf("initial command was: %s\n", input);
 	
 	char* COMMAND = new char[32]();
-	char* ARG_ONE = new char[32]();
+	char* ARG_ONE = new char[256]();
 	char* ARG_TWO = new char[256]();
 	
 	tokenize_command(input, COMMAND, ARG_ONE, ARG_TWO);
 	
-	printf("COMMAND is: %s\n", COMMAND);
-	printf("ARG_ONE is: %s\n", ARG_ONE);
-	printf("ARG_TWO is: %s\n", ARG_TWO);
+	printf("COMMAND is: \"%s\" size: %d\n", COMMAND, std::string(COMMAND).length());
+	printf("ARG_ONE is: \"%s\" size: %d\n", ARG_ONE, std::string(ARG_ONE).length());
+	printf("ARG_TWO is: \"%s\" size: %d\n", ARG_TWO, std::string(ARG_TWO).length());
+	
+	// only login exit and author allowed when logged out
 	
     if (str_equals(COMMAND, "AUTHOR")) {
         printf("COMMAND was AUTHOR\n");
         this->print_author();
-    } else if (str_equals(COMMAND, "IP")) {
-        printf("COMMAND was IP\n");
-        this->print_ip();
-    } else if (str_equals(COMMAND, "PORT")) {
-        printf("COMMAND was PORT\n");
-		this->print_port();
-    } else if (str_equals(COMMAND, "LIST")) {
-        printf("COMMAND was LIST\n");
-        this->print_list();
-    } else if (str_equals(COMMAND, "STATISTICS")) {
-        printf("COMMAND was STATISTICS\n");
-		this->print_statistics();
-    } else if (str_equals(COMMAND, "BLOCKED")) {
-        printf("COMMAND was BLOCKED\n");
-		this->print_blocked(ARG_ONE);
     } else if (str_equals(COMMAND, "LOGIN")) {
         printf("COMMAND was LOGIN\n");
 		this->login(ARG_ONE, ARG_TWO);
-    } else if (str_equals(COMMAND, "REFRESH")) {
-        printf("COMMAND was REFRESH\n");
-		this->refresh();
-    } else if (str_equals(COMMAND, "SEND")) {
-        printf("COMMAND was SEND\n");
-		this->send(ARG_ONE, ARG_TWO);
-    } else if (str_equals(COMMAND, "BROADCAST")) {
-        printf("COMMAND was BROADCAST\n");
-		this->broadcast(ARG_ONE);
-    } else if (str_equals(COMMAND, "BLOCK")) {
-        printf("COMMAND was BLOCK\n");
-		this->block(ARG_ONE);
-    } else if (str_equals(COMMAND, "UNBLOCK")) {
-        printf("COMMAND was UNBLOCK\n");
-		this->unblock(ARG_ONE);
-    } else if (str_equals(COMMAND, "LOGOUT")) {
-        printf("COMMAND was LOGOUT\n");
-		this->logout();
     } else if (str_equals(COMMAND, "EXIT")) {
         printf("COMMAND was EXIT\n");
-    } else {
+    } else if (logged_in) {
+		
+		if (str_equals(COMMAND, "IP")) {
+        	printf("COMMAND was IP\n");
+        	this->print_ip();
+    	} else if (str_equals(COMMAND, "PORT")) {
+        	printf("COMMAND was PORT\n");
+			this->print_port();
+    	} else if (str_equals(COMMAND, "LIST")) {
+        	printf("COMMAND was LIST\n");
+        	this->print_list();
+    	} else if (str_equals(COMMAND, "STATISTICS")) {
+        	printf("COMMAND was STATISTICS\n");
+			this->print_statistics();
+    	} else if (str_equals(COMMAND, "BLOCKED")) {
+        	printf("COMMAND was BLOCKED\n");
+			this->print_blocked(ARG_ONE);
+    	} else if (str_equals(COMMAND, "REFRESH")) {
+			printf("COMMAND was REFRESH\n");
+			this->refresh();
+		} else if (str_equals(COMMAND, "SEND")) {
+			printf("COMMAND was SEND\n");
+			this->send(ARG_ONE, ARG_TWO);
+		} else if (str_equals(COMMAND, "BROADCAST")) {
+			printf("COMMAND was BROADCAST\n");
+			this->broadcast(ARG_ONE);
+		} else if (str_equals(COMMAND, "BLOCK")) {
+			printf("COMMAND was BLOCK\n");
+			this->block(ARG_ONE);
+		} else if (str_equals(COMMAND, "UNBLOCK")) {
+			printf("COMMAND was UNBLOCK\n");
+			this->unblock(ARG_ONE);
+		} else if (str_equals(COMMAND, "LOGOUT")) {
+			printf("COMMAND was LOGOUT\n");
+			this->logout();
+		} else {
+			cse4589_print_and_log("[%s:ERROR]\n", COMMAND);
+        	printf("did not recognize COMMAND\n");
+    	}
+		
+	} else {
 		cse4589_print_and_log("[%s:ERROR]\n", COMMAND);
         printf("did not recognize COMMAND\n");
     }

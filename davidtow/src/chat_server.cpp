@@ -76,7 +76,7 @@ void chat_server::stdin_handler() {
     if (read_in <= 0) {
 		printf("error reading from stdin\n");	
 	} else {
-		handle_input(input);
+		handle_input(input, 1);
 		memset(&input, 0, sizeof input);
 	}
 					
@@ -116,38 +116,27 @@ void chat_server::listener_handler() {
 			fdmax = newfd;
 		}
 		
-		generate_list();
-		
-		if (FD_ISSET(newfd, &master)) {
-		
-			if (int out_bytes = ::send(newfd, LIST_PRINTABLE, 300, 0) == -1) {
-				perror("send");
-			} else {
-				printf("new list sent %d bytes successfully\n", out_bytes);
-			}
-			
-		}	
-		
 		
 		int associated_socket = newfd;
 		char client_ip[32] = "";
-		//char client_port[32] = ""; 
+		char client_port[32] = ""; 
 		char hostname[32] = "";
-		char client_port[32] = "";
+		
+		char service[32] = "";
 		
 		strcpy(client_ip, inet_ntop(remoteaddr.ss_family,
 			::get_in_addr((struct sockaddr*)&remoteaddr),
 			remoteIP, INET6_ADDRSTRLEN));
 			
-		//int temp_int = ntohs(get_in_port((struct sockaddr*)&remoteaddr));
-		//std::string temp = toString(temp_int);
-		//strcpy(client_port, temp.c_str());
+		int temp_int = ntohs(get_in_port((struct sockaddr*)&remoteaddr));
+		std::string temp = toString(temp_int);
+		strcpy(client_port, temp.c_str());
 			
 		getnameinfo((struct sockaddr*)&remoteaddr, 
 			sizeof remoteaddr, 
-			hostname, sizeof hostname, client_port, sizeof client_port, 0);
+			hostname, sizeof hostname, service, sizeof service, 0);
 			
-		printf("service is %s\n", client_port);
+		printf("service is %s\n", service);
 			
 		handle_login(associated_socket, client_ip, client_port, hostname);
 			
@@ -203,7 +192,7 @@ void chat_server::proccess_request(int sender_socket, char* request) {
 	
 	if (str_equals(COMMAND, "SEND")) {
         printf("COMMAND was SEND\n");
-        this->handle_send(sender_ip, ARG_ONE, ARG_TWO);
+        this->handle_send(sender_ip, ARG_ONE, ARG_TWO, 0);
     } else if (str_equals(COMMAND, "BROADCAST")) {
 		printf("COMMAND was BROADCAST\n");
 		this->handle_broadcast(sender_socket, sender_ip, ARG_ONE);
@@ -223,38 +212,37 @@ void chat_server::proccess_request(int sender_socket, char* request) {
 
 void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 	
-	user* this_user = NULL;
-	for (int i = 0; i < user_list.size(); i++) {
-		if (str_equals(user_list.at(i).ip, ip)) {
-			this_user = &user_list.at(i);
-		}
-	}
-	
-	printf("user list size is %d\n", user_list.size());
-	
-	if (this_user == NULL) {
-		// this is a new user
-		
-		struct user new_user;
-		strcpy(new_user.ip, ip);
-		strcpy(new_user.hostname, host);
-		strcpy(new_user.remote_port, port);
-		new_user.associated_socket = socket;
-		
-		user_list.push_back(new_user);
-		
-		printf("This is a new user\n");
-		printf("new user ip is %s\n", ip);
-		printf("new user port is %s\n", port);
-		printf("new user host is \"%s\"\n", host);
-		printf("new user list size is %d\n", user_list.size());
-		
-	} else {
-		//this is a returning user
+	if (user* this_user = get_user_from_ip(ip)) {
+		// this is a returning user
 		printf("This is a returning user\n");
 		printf("returning user ip is %s\n", this_user->ip);
 		printf("returning user port is %s\n", this_user->remote_port);
 		printf("returning user host is \"%s\"\n", this_user->hostname);
+		
+		// associate new socket
+		this_user->associated_socket = socket;
+		
+		// send updated list
+		generate_list();
+		
+		if (FD_ISSET(socket, &master)) {
+		
+			char buffer[601] = "";
+			char break_msg[2];
+			break_msg[0] = -1;
+			break_msg[1] = '\0';
+			strcpy(buffer, break_msg);
+			strcat(buffer, LIST_PRINTABLE);
+		
+			if (int out_bytes = ::send(socket, buffer, 601, 0) == -1) {
+				perror("send");
+			} else {
+				printf("new list sent %d bytes successfully\n", out_bytes);
+			}
+			
+		} else {
+			printf("user socket was busy, list not sent\n");
+		}
 		
 		// check if user has any pending messages
 		if ( ! this_user->saved_messages.empty()) {
@@ -268,8 +256,6 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 				
 				char buffer[300] = "";
 				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
-				
-				
 				
 				if (FD_ISSET(socket, &master)) {
 					
@@ -288,6 +274,43 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 			}
 		} 
 		
+	} else {
+		// this is a new user	
+		struct user new_user;
+		strcpy(new_user.ip, ip);
+		strcpy(new_user.hostname, host);
+		strcpy(new_user.remote_port, port);
+		new_user.associated_socket = socket;
+		
+		user_list.push_back(new_user);
+		
+		// send updated list
+		generate_list();
+		
+		if (FD_ISSET(socket, &master)) {
+		
+			char buffer[601] = "";
+			char break_msg[2];
+			break_msg[0] = -1;
+			break_msg[1] = '\0';
+			strcpy(buffer, break_msg);
+			strcat(buffer, LIST_PRINTABLE);
+		
+			if (int out_bytes = ::send(socket, buffer, 601, 0) == -1) {
+				perror("send");
+			} else {
+				printf("new list sent %d bytes successfully\n", out_bytes);
+			}
+			
+		} else {
+			printf("user socket was busy, list not sent\n");
+		}
+		
+		printf("This is a new user\n");
+		printf("new user ip is %s\n", ip);
+		printf("new user port is %s\n", port);
+		printf("new user host is \"%s\"\n", host);
+		printf("new user list size is %d\n", user_list.size());	
 	}
 	
 }
@@ -304,8 +327,18 @@ void chat_server::handle_logout(int socket) {
 }
 
 
-void chat_server::handle_send(char* sender_ip, char* target_ip, char* message) {
+void chat_server::handle_send(char* sender_ip, char* target_ip, char* message, int IS_BROADCAST) {
 	printf("in handle_send target: %s and message: %s\n", target_ip, message);
+	
+	// ("msg from:%s, to:%s\n[msg]:%s\n", from-client-ip, to-client-ip, msg)
+	// [Update] In case of a broadcast message, <to-client-ip> will be 255.255.255.255
+	// For the purposes of printing/logging, use command_str: RELAYED
+	if (! IS_BROADCAST) {
+		cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+		cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
+				sender_ip, target_ip, message);
+		cse4589_print_and_log("[%s:END]\n", "SEND");	
+	}		
 	
 	
 	user* target_user;
@@ -365,7 +398,18 @@ void chat_server::handle_broadcast(int sender_socket, char* sender_ip, char* mes
 		if (user_list.at(i).associated_socket != sender_socket) {
 			// every user except the sender
 			user_list.at(i).messages_sent ++;
-			handle_send(sender_ip, user_list.at(i).ip, message);
+			
+			// ("msg from:%s, to:%s\n[msg]:%s\n", from-client-ip, to-client-ip, msg)
+			// [Update] In case of a broadcast message, <to-client-ip> will be 255.255.255.255
+			// For the purposes of printing/logging, use command_str: RELAYED
+			
+			cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+			cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
+					sender_ip, "255.255.255.255", message);
+			cse4589_print_and_log("[%s:END]\n", "RELAYED");
+			
+			
+			handle_send(sender_ip, user_list.at(i).ip, message, 1);
 		}
 	}
 }
@@ -426,7 +470,16 @@ void chat_server::handle_refresh(int sender_socket) {
 	
 	if (FD_ISSET(sender_socket, &master)) {
 					
-		if (int out_bytes = ::send(sender_socket, LIST_PRINTABLE, 300, 0) == -1) {
+		char list_deliverable[601];
+					
+		char break_msg[2];
+		break_msg[0] = -1;
+		break_msg[1] = '\0';
+	
+		strcpy(list_deliverable, break_msg);
+		strcat(list_deliverable, LIST_PRINTABLE);
+					
+		if (int out_bytes = ::send(sender_socket, list_deliverable, 601, 0) == -1) {
 			perror("send");
 		} else {
 			printf("new list sent %d bytes successfully\n", out_bytes);
@@ -498,11 +551,17 @@ void chat_server::generate_list() {
 	for (int i = 0; i < user_list.size(); i++) {
 		user* usr = &user_list.at(i);
 		
-		char line_buffer[100] = "";
-		sprintf(line_buffer, 
+		if (usr->associated_socket != -1) {
+			// user is online
+			char line_buffer[100] = "";
+			
+			sprintf(line_buffer, 
 			"%-5d%-35s%-20s%-8d\n", i, usr->hostname, usr->ip, atoi(usr->remote_port));
 			
-		strcat(LIST_PRINTABLE, line_buffer);
+			strcat(LIST_PRINTABLE, line_buffer);
+			
+		} 
+		
 	}
 	
 }
@@ -545,3 +604,75 @@ chat_server::user* chat_server::get_user_from_ip(char* ip) {
 	return NULL;
 	
 }
+
+
+/* OLD LOGIN CODE 
+
+/*
+	user* this_user = NULL;
+	for (int i = 0; i < user_list.size(); i++) {
+		if (str_equals(user_list.at(i).ip, ip)) {
+			this_user = &user_list.at(i);
+		}
+	}
+	
+	printf("user list size is %d\n", user_list.size());
+	
+	if (this_user == NULL) {
+		// this is a new user
+		
+		struct user new_user;
+		strcpy(new_user.ip, ip);
+		strcpy(new_user.hostname, host);
+		strcpy(new_user.remote_port, port);
+		new_user.associated_socket = socket;
+		
+		user_list.push_back(new_user);
+		
+		printf("This is a new user\n");
+		printf("new user ip is %s\n", ip);
+		printf("new user port is %s\n", port);
+		printf("new user host is \"%s\"\n", host);
+		printf("new user list size is %d\n", user_list.size());
+		
+	} else {
+		//this is a returning user
+		printf("This is a returning user\n");
+		printf("returning user ip is %s\n", this_user->ip);
+		printf("returning user port is %s\n", this_user->remote_port);
+		printf("returning user host is \"%s\"\n", this_user->hostname);
+		
+		// check if user has any pending messages
+		if ( ! this_user->saved_messages.empty()) {
+			// user has unreceived messages
+			while ( ! this_user->saved_messages.empty()) {
+				
+				// get the most recent message
+				message next_message = this_user->saved_messages.front();
+				char* msg_sender = next_message.sender;
+				char* msg_content = next_message.msg;
+				
+				char buffer[300] = "";
+				sprintf(buffer, "msg from:%s\n[msg]:%s\n", msg_sender, msg_content);
+				
+				
+				
+				if (FD_ISSET(socket, &master)) {
+					
+					if (int out_bytes = ::send(socket, buffer, sizeof buffer, 0) == -1) {
+						perror("send");
+					} else {
+						printf("message sent %d bytes successfully\n", out_bytes);
+						
+						// pop that message off the stack
+						this_user->saved_messages.pop();
+					}
+				
+				} else {
+					printf("socket is not ready to receive stored messages\n");
+				}
+			}
+		} 
+		
+	}
+*/

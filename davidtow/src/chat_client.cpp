@@ -66,6 +66,7 @@ void chat_client::connect_to_server() {
    	if (connect(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
 		printf("Cannot connect to server\n");
    		perror("connect");
+		cse4589_print_and_log("[%s:ERROR]\n", "LOGIN");
    	} else {
 		printf("client connected OK\n");
 		FD_SET(server_socket, &living_fds);
@@ -83,7 +84,7 @@ void chat_client::stdin_handler() {
     if (read_in <= 0) {
 		printf("error reading from stdin\n");	
 	} else {
-		handle_input(input);
+		handle_input(input, LOGGED_IN);
 		memset(&input, 0, sizeof input);
 	}
 					
@@ -92,7 +93,7 @@ void chat_client::stdin_handler() {
 
 void chat_client::server_handler() {
 	
-    if ((nbytes = recv(server_socket, input, sizeof input, 0)) <= 0) {
+    if ((nbytes = recv(server_socket, input, BUFFERSIZE, 0)) <= 0) {
 		// got error or connection closed by client
 		if (nbytes == 0) {
 			// connection closed
@@ -105,7 +106,21 @@ void chat_client::server_handler() {
 		FD_CLR(server_socket, &living_fds); 
 	} else {
 		// we got some data from the server
-		printf("message received was: %s\n", input);
+		
+		if (input[0] == -1) {
+			// this is a new list
+			printf("new list\n");
+			memset(&LIST_PRINTABLE, 0, 600);
+			memcpy(LIST_PRINTABLE, &input[1], 600);
+			print_list();
+			
+		} else {
+			//regular message delivery
+			cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
+			cse4589_print_and_log(input);
+			cse4589_print_and_log("[%s:END]\n", "RECEIVED");
+			
+		}
 		
 		memset(&input, 0, sizeof input);
         
@@ -164,13 +179,13 @@ void chat_client::login(char* server_ip, char* server_port) {
 
 void chat_client::send(char* client_ip, char* msg) {
 	
-	char* message = new char[300]();
+	char* message = new char[320]();
 	
 	char* COMMAND = "SEND";
 	char* ARG_ONE = client_ip;
 	char* ARG_TWO = msg;
 	
-	stringify_command(message, 300, COMMAND, ARG_ONE, ARG_TWO);
+	stringify_command(message, 320, COMMAND, ARG_ONE, ARG_TWO);
 	
 	printf("sending message: %s\n", message);
 	
@@ -259,6 +274,8 @@ void chat_client::refresh() {
 			printf("error sending refresh\n");
 		} else {
 			printf("refresh sent %d bytes successfully\n", nbytes);
+			cse4589_print_and_log("[%s:SUCCESS]\n", "REFRESH");
+			cse4589_print_and_log("[%s:END]\n", "REFRESH");
 		}
 	}
 }
@@ -277,6 +294,14 @@ void chat_client::logout() {
 	bind_socket_port();
 	
 }
+
+
+void chat_client::print_list() {
+	cse4589_print_and_log("[%s:SUCCESS]\n", "LIST");
+	cse4589_print_and_log(LIST_PRINTABLE);
+	cse4589_print_and_log("[%s:END]\n", "LIST");
+}
+
 
 void chat_client::exit_program() {
 	printf("exit program was called\n");

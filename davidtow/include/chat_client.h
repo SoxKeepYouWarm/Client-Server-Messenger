@@ -8,6 +8,7 @@ class chat_client: public chat_machine {
     int LOGGED_IN;
 	
 	int server_socket;
+	
 	struct sockaddr_in local_addr;
 	struct sockaddr_in server_addr;
 	
@@ -21,6 +22,8 @@ class chat_client: public chat_machine {
 	
 	char input[BUFFERSIZE];
 	int nbytes;
+	
+	char LIST_PRINTABLE[600];
 	
 	void create_server_socket();
 	void bind_socket_port();
@@ -44,6 +47,7 @@ class chat_client: public chat_machine {
     
     void refresh();
     void logout();
+	void print_list();
 	void exit_program();
     
 };
