@@ -479,7 +479,7 @@ void chat_server::handle_unblock(int sender_socket, char* unblock_ip) {
 		if (pos < sender_user->black_list.size()) {
 			// user is currently blocked
 			sender_user->black_list.erase(sender_user->black_list.begin() + pos);
-			send_response(sender_socket, UNBLOCK_RESP, ERROR);
+			send_response(sender_socket, UNBLOCK_RESP, OK);
 		} else {
 			// user is not currently blocked
 			send_response(sender_socket, UNBLOCK_RESP, ERROR);
