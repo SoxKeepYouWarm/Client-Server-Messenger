@@ -87,13 +87,28 @@ void chat_machine::tokenize_command(char* command, char* COMMAND, char* ARG_ONE,
 				printf("word_str is %s\n", word_str.c_str());
 				std::string comm(COMMAND);
 				int max_size = 32;
-				if (comm == "BROADCAST") { max_size = 256; }
 				
-				if (word_str.size() <= max_size){
-					strcpy(ARG_ONE, word_str.c_str());
-				} else { 
-					COMMAND = "ERROR"; 
+				if (comm == "BROADCAST") { 
+				
+					max_size = 256; 
+					std::string remaining_string = command_str.substr(start_index);
+					if (remaining_string.size() <= max_size){
+						strcpy(ARG_ONE, remaining_string.c_str());
+						ARG_TWO[0] = 1;
+					} else { 
+						COMMAND = "ERROR"; 
+					}
+					
+				} else {
+					
+					if (word_str.size() <= max_size){
+						strcpy(ARG_ONE, word_str.c_str());
+					} else { 
+						COMMAND = "ERROR"; 
+					}
+					
 				}
+				
 				
 			} else if (ARG_TWO[0] == '\0') {
 				

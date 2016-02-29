@@ -71,7 +71,7 @@ class chat_server: public chat_machine {
 	user* get_user_from_ip(char* ip); 
 	user* get_user_from_ip_port(char* ip, char* port); 
 	user* get_user_from_socket(int sender_socket);
-	//std::vector<user> users_registered_at_ip(char* ip);
+	void send_response(int socket, int METHOD, int CODE);
 	
     public:
     chat_server(char* port);

@@ -8,6 +8,13 @@
 #define BUFFERSIZE 601
 #define MAXIMUM_CONNECTIONS 10
 
+#define SEND_RESP -2
+#define BLOCK_RESP -3
+#define UNBLOCK_RESP -4
+
+#define OK 0
+#define ERROR -1
+
 #include "../include/global.h"
 #include "../include/logger.h"
 #include "utility.h"

@@ -349,6 +349,13 @@ void chat_server::handle_send(int sender_socket, char* target_ip, char* message,
 	user* target_user;
 	if (target_user = get_user_from_ip(target_ip)) {
 		// user exists
+		
+		if (! IS_BROADCAST) {
+			
+			send_response(sender_socket, SEND_RESP, ERROR);
+			
+		}
+		
 		if ( std::find(target_user->black_list.begin(), 
 			target_user->black_list.end(), sender_ip) != target_user->black_list.end() ) {
 			// sender is blacklisted
@@ -391,17 +398,12 @@ void chat_server::handle_send(int sender_socket, char* target_ip, char* message,
 	} else {
 		// user doesn't exist
 		// HANDLE ERROR
-		/*
-		if (FD_ISSET(sender_socket, &master)) {
-					
-			if (int out_bytes = ::send(target_socket, buffer, 300, 0) == -1) {
-				perror("send");
-			} else {
-				printf("message sent %d bytes successfully\n", out_bytes);
-			}
-				
+		if (! IS_BROADCAST) {
+			
+			send_response(sender_socket, SEND_RESP, ERROR);
+			
 		}
-		*/
+		
 		
 	}
 	
@@ -413,26 +415,29 @@ void chat_server::handle_broadcast(int sender_socket, char* message) {
 	user* sender_user = get_user_from_socket(sender_socket);
 	char* sender_ip = sender_user->ip;
 	
-	printf("in handle_broadcast sender: %s and message: %s", sender_ip, message);
+	printf("in handle_broadcast sender: %s and message: %s\n", sender_ip, message);
 	
+	int sent_message = 0;
 	for (int i = 0; i < user_list.size(); i++) {
 		if (user_list.at(i).associated_socket != sender_socket) {
 			// every user except the sender
-			user_list.at(i).messages_sent ++;
-			
-			// ("msg from:%s, to:%s\n[msg]:%s\n", from-client-ip, to-client-ip, msg)
-			// [Update] In case of a broadcast message, <to-client-ip> will be 255.255.255.255
-			// For the purposes of printing/logging, use command_str: RELAYED
-			
-			cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
-			cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
-					sender_user->ip, "255.255.255.255", message);
-			cse4589_print_and_log("[%s:END]\n", "RELAYED");
-			
+			sent_message = 1;
 			
 			handle_send(sender_socket, user_list.at(i).ip, message, 1);
 		}
 	}
+	
+	if (sent_message) {
+		
+		cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+			cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", 
+					sender_user->ip, "255.255.255.255", message);
+			cse4589_print_and_log("[%s:END]\n", "RELAYED");
+			
+		sender_user->messages_sent += sent_message;
+	}
+	
+	
 }
 
 
@@ -444,15 +449,17 @@ void chat_server::handle_block(int sender_socket, char* block_ip) {
 		if ( std::find(sender_user->black_list.begin(), 
 			sender_user->black_list.end(), block_ip) != sender_user->black_list.end() ) {
 			// user is already blocked
-			// DO NOTHING
+			send_response(sender_socket, BLOCK_RESP, ERROR);
 		} else {
 			// user is not currently blocked
 			sender_user->black_list.push_back(block_ip);
+			send_response(sender_socket, UNBLOCK_RESP, OK);
 		}
 		
 	} else {
 		// target user doesn't exist
 		// HANDLE ERROR
+		send_response(sender_socket, BLOCK_RESP, ERROR);
 	}
 	
 }
@@ -470,14 +477,16 @@ void chat_server::handle_unblock(int sender_socket, char* unblock_ip) {
 		if (pos < sender_user->black_list.size()) {
 			// user is currently blocked
 			sender_user->black_list.erase(sender_user->black_list.begin() + pos);
+			send_response(sender_socket, UNBLOCK_RESP, ERROR);
 		} else {
 			// user is not currently blocked
-			// DO NOTHING
+			send_response(sender_socket, UNBLOCK_RESP, ERROR);
 		}
 		
 	} else {
 		// target user doesn't exist
 		// HANDLE ERROR
+		send_response(sender_socket, UNBLOCK_RESP, ERROR);
 	}
 	
 }
@@ -490,6 +499,7 @@ void chat_server::handle_refresh(int sender_socket) {
 	if (FD_ISSET(sender_socket, &master)) {
 					
 		char list_deliverable[601];
+		memset(list_deliverable, 0, 601);
 					
 		char break_msg[2];
 		break_msg[0] = -1;
@@ -727,13 +737,6 @@ int chat_server::is_user_registered_at_ip(char* ip) {
 }
 
 
-/*
-std::vector<chat_server::user> users_registered_at_ip(char* ip) {
-	
-}
-*/
-
-
 chat_server::user* chat_server::get_user_from_socket(int sender_socket) {
 	
 	for (int i = 0; i < user_list.size(); i++) {
@@ -743,3 +746,31 @@ chat_server::user* chat_server::get_user_from_socket(int sender_socket) {
 	}
 	
 }
+
+
+void chat_server::send_response(int socket, int METHOD, int CODE) {
+	
+	if (FD_ISSET(socket, &master)) {
+					
+		char response[4];
+		memset(response, 0, 4);
+					
+		char method[2];
+		method[0] = METHOD;
+		method[1] = '\0';
+		
+		char code[2];
+		code[0] = CODE;
+		code[1] = '\0';
+	
+		strcpy(response, method);
+		strcat(response, code);
+					
+		if (int out_bytes = ::send(socket, response, 4, 0) == -1) {
+			perror("send");
+		} else {
+			printf("response sent %d bytes successfully\n", out_bytes);
+		}
+				
+	}
+} 

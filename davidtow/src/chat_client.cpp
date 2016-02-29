@@ -67,10 +67,17 @@ void chat_client::connect_to_server() {
 		printf("Cannot connect to server\n");
    		perror("connect");
 		cse4589_print_and_log("[%s:ERROR]\n", "LOGIN");
+		cse4589_print_and_log("[%s:END]\n", "LOGIN");
    	} else {
+		
 		printf("client connected OK\n");
+		cse4589_print_and_log("[%s:ERROR]\n", "LOGIN");
+		cse4589_print_and_log("[%s:END]\n", "LOGIN");
+		
 		FD_SET(server_socket, &living_fds);
-   		FD_MAX = server_socket;
+   		if (server_socket > FD_MAX) {
+			   FD_MAX = server_socket;
+		   }
 		LOGGED_IN = 1;
 	}
    
@@ -107,12 +114,55 @@ void chat_client::server_handler() {
 	} else {
 		// we got some data from the server
 		
+		int CODE = input[0];
+		int STATUS = input[1];
+		
 		if (input[0] == -1) {
 			// this is a new list
 			printf("new list\n");
 			memset(&LIST_PRINTABLE, 0, 600);
 			memcpy(LIST_PRINTABLE, &input[1], 600);
 			print_list();
+			
+		} else if (CODE == SEND_RESP) {
+			
+			if (STATUS == OK) {
+				
+				cse4589_print_and_log("[%s:SUCCESS]\n", "SEND");
+				cse4589_print_and_log("[%s:END]\n", "SEND");
+			
+			} else {
+				
+				cse4589_print_and_log("[%s:ERROR]\n", "SEND");
+				cse4589_print_and_log("[%s:END]\n", "SEND");
+			}
+			
+		} else if (CODE == BLOCK_RESP) {
+			
+			if (STATUS == OK) {
+				
+				cse4589_print_and_log("[%s:SUCCESS]\n", "BLOCK");
+				cse4589_print_and_log("[%s:END]\n", "BLOCK");
+				
+			} else {
+				
+				cse4589_print_and_log("[%s:ERROR]\n", "BLOCK");
+				cse4589_print_and_log("[%s:END]\n", "BLOCK");
+				
+			}
+			
+		} else if (CODE == UNBLOCK_RESP) {
+			
+			if (STATUS == OK) {
+				
+				cse4589_print_and_log("[%s:SUCCESS]\n", "UNBLOCK");
+				cse4589_print_and_log("[%s:END]\n", "UNBLOCK");
+				
+			} else {
+				
+				cse4589_print_and_log("[%s:ERROR]\n", "UNBLOCK");
+				cse4589_print_and_log("[%s:END]\n", "UNBLOCK");
+			}
 			
 		} else {
 			//regular message delivery
