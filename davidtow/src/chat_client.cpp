@@ -71,8 +71,6 @@ void chat_client::connect_to_server() {
    	} else {
 		
 		printf("client connected OK\n");
-		cse4589_print_and_log("[%s:SUCCESS]\n", "LOGIN");
-		
 		
 		FD_SET(server_socket, &living_fds);
    		if (server_socket > FD_MAX) {
@@ -165,6 +163,7 @@ void chat_client::server_handler() {
 			
 		} else if (CODE == NO_QUEUED_MESSAGES) {
 			
+			cse4589_print_and_log("[%s:SUCCESS]\n", "LOGIN");
 			cse4589_print_and_log("[%s:END]\n", "LOGIN");
 		} 
 		
