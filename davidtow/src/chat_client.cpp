@@ -72,7 +72,7 @@ void chat_client::connect_to_server() {
 		
 		printf("client connected OK\n");
 		cse4589_print_and_log("[%s:SUCCESS]\n", "LOGIN");
-		cse4589_print_and_log("[%s:END]\n", "LOGIN");
+		
 		
 		FD_SET(server_socket, &living_fds);
    		if (server_socket > FD_MAX) {
@@ -122,7 +122,6 @@ void chat_client::server_handler() {
 			printf("new list\n");
 			memset(&LIST_PRINTABLE, 0, 600);
 			memcpy(LIST_PRINTABLE, &input[1], 600);
-			print_list();
 			
 		} else if (CODE == SEND_RESP) {
 			
@@ -164,7 +163,12 @@ void chat_client::server_handler() {
 				cse4589_print_and_log("[%s:END]\n", "UNBLOCK");
 			}
 			
-		} else {
+		} else if (CODE == NO_QUEUED_MESSAGES) {
+			
+			cse4589_print_and_log("[%s:END]\n", "LOGIN");
+		} 
+		
+		else {
 			//regular message delivery
 			cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
 			cse4589_print_and_log(input);

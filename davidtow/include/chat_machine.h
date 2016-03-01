@@ -11,6 +11,7 @@
 #define SEND_RESP -2
 #define BLOCK_RESP -3
 #define UNBLOCK_RESP -4
+#define NO_QUEUED_MESSAGES -5 
 
 #define OK 0
 #define ERROR -1

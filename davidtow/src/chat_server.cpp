@@ -273,8 +273,19 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 				} else {
 					printf("socket is not ready to receive stored messages\n");
 				}
+				
+				// sleep ten milisecond
+				usleep(10000);
+				
 			}
-		} 
+			
+			// finished sending queued messages
+			send_response(socket, NO_QUEUED_MESSAGES, OK);
+			
+		} else {
+			// no queued messages to send
+			send_response(socket, NO_QUEUED_MESSAGES, OK);
+		}
 		
 	} else {
 		// this is a new user	
@@ -315,6 +326,8 @@ void chat_server::handle_login(int socket, char* ip, char* port, char* host) {
 		printf("new user port is %s\n", port);
 		printf("new user host is \"%s\"\n", host);
 		printf("new user list size is %d\n", user_list.size());	
+		
+		send_response(socket, NO_QUEUED_MESSAGES, OK);
 	}
 	
 }
@@ -354,6 +367,7 @@ void chat_server::handle_send(int sender_socket, char* target_ip, char* message,
 		
 		if (! IS_BROADCAST) {
 			
+			sender_user->messages_sent ++;
 			send_response(sender_socket, SEND_RESP, OK);
 			
 		}
